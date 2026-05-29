@@ -33,7 +33,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
 
     const logger = container.resolve(Logger as InjectionToken<Logger>)
     logger.setLevel(config.logLevel)
-    logger.info({ version: '0.1.0' }, 'GraphQL Utils activating')
+    logger.info({ version: '0.1.0' }, "Oleshko's GraphQL activating")
 
     registerLanguageProviders(lifecycle)
 
@@ -42,7 +42,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
 
     container.resolve(ConfigReloader).start()
 
-    logger.info('GraphQL Utils ready')
+    logger.info("Oleshko's GraphQL ready")
 }
 
 export async function shutdown(): Promise<void> {

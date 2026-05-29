@@ -46,7 +46,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
             case 'directive-location':
                 return new CompletionList(this.directiveLocationItems(), true)
             case 'type-position':
-                return new CompletionList(this.typeItems(currentUri), false)
+                return new CompletionList(this.typeItems(currentUri, ctx.enclosingType), false)
             case 'keywords':
                 return new CompletionList(this.keywordItems(), true)
             case 'none':
@@ -54,15 +54,16 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         }
     }
 
-    private typeItems(currentUri: string): CompletionItem[] {
+    private typeItems(currentUri: string, enclosingType: string | undefined): CompletionItem[] {
         const items: CompletionItem[] = []
 
         for (const name of this.index.allTypeNames()) {
+            if (name === enclosingType) continue
             const defs = this.index.findTypeDefinitions(name)
             const first = defs[0]
             if (!first || first.kind === 'directive') continue
             const rank = bestRank(defs, currentUri)
-            const item = new CompletionItem(name, mapKind(first.kind))
+            const item = newItem(name, mapKind(first.kind))
             const desc = defs.map(d => d.description).find(Boolean)
             if (desc) item.documentation = new MarkdownString(desc)
             item.detail = first.kind
@@ -71,7 +72,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         }
 
         for (const scalar of this.builtins.scalars()) {
-            const item = new CompletionItem(scalar.name, CompletionItemKind.Value)
+            const item = newItem(scalar.name, CompletionItemKind.Value)
             item.detail = 'built-in scalar'
             item.documentation = new MarkdownString(scalar.description)
             item.sortText = sortText(rankOf('builtin'), scalar.name)
@@ -83,7 +84,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
 
     private keywordItems(): CompletionItem[] {
         return this.builtins.keywordsList().map(kw => {
-            const item = new CompletionItem(kw, CompletionItemKind.Keyword)
+            const item = newItem(kw, CompletionItemKind.Keyword)
             item.detail = 'GraphQL keyword'
             return item
         })
@@ -91,7 +92,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
 
     private directiveLocationItems(): CompletionItem[] {
         return DIRECTIVE_LOCATIONS.map(loc => {
-            const item = new CompletionItem(loc, CompletionItemKind.EnumMember)
+            const item = newItem(loc, CompletionItemKind.EnumMember)
             item.detail = 'directive location'
             return item
         })
@@ -133,7 +134,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
 
         const enumValues = this.index.findFieldDefinitionsByParent(argType)
         return enumValues.map(value => {
-            const item = new CompletionItem(value.name, CompletionItemKind.EnumMember)
+            const item = newItem(value.name, CompletionItemKind.EnumMember)
             item.detail = argType
             if (value.description) item.documentation = new MarkdownString(value.description)
             return item
@@ -154,7 +155,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         const federationSpec = this.federation.getDirective(directiveName)
         if (federationSpec) {
             return federationSpec.args.map(arg => {
-                const item = new CompletionItem(arg.name, CompletionItemKind.Field)
+                const item = newItem(arg.name, CompletionItemKind.Field)
                 item.detail = arg.type
                 item.documentation = new MarkdownString(arg.description)
                 item.insertText = `${arg.name}: `
@@ -164,7 +165,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
 
         const args = this.index.findFieldDefinitionsByParent(directiveArgsParent(directiveName))
         return args.map(arg => {
-            const item = new CompletionItem(arg.name, CompletionItemKind.Field)
+            const item = newItem(arg.name, CompletionItemKind.Field)
             item.detail = arg.typeName
             if (arg.description) item.documentation = new MarkdownString(arg.description)
             item.insertText = `${arg.name}: `
@@ -173,7 +174,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
     }
 
     private makeDirectiveItem(name: string, description: string | undefined, argsMd: string): CompletionItem {
-        const item = new CompletionItem(name, CompletionItemKind.Function)
+        const item = newItem(name, CompletionItemKind.Function)
         item.detail = `@${name}`
         const md = new MarkdownString()
         if (description) md.appendMarkdown(description)
@@ -205,6 +206,12 @@ function localityKey(defUri: string, currentUri: string): CompletionRank {
 
 function sortText(rank: number, name: string): string {
     return `${rank}_${name}`
+}
+
+function newItem(label: string, kind: CompletionItemKind): CompletionItem {
+    const item = new CompletionItem(label, kind)
+    item.filterText = label.toLowerCase()
+    return item
 }
 
 function stripTypeWrappers(typeStr: string): string {

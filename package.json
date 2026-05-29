@@ -1,6 +1,6 @@
 {
-    "name": "graphql-utils",
-    "displayName": "GraphQL Utils",
+    "name": "oleshko-graphql",
+    "displayName": "Oleshko's GraphQL",
     "description": "Zero-config GraphQL & Apollo Federation language support: definitions, references, hover, autocomplete, syntax highlighting",
     "version": "0.1.0",
     "publisher": "okhoma",
@@ -65,7 +65,7 @@
             }
         ],
         "configuration": {
-            "title": "GraphQL Utils",
+            "title": "Oleshko's GraphQL",
             "properties": {
                 "graphqlUtils.logLevel": {
                     "type": "string",
@@ -78,7 +78,7 @@
                         "silent"
                     ],
                     "default": "info",
-                    "description": "Log verbosity in the GraphQL Utils output channel."
+                    "description": "Log verbosity in the Oleshko's GraphQL output channel."
                 },
                 "graphqlUtils.scan.workspaceGlobs": {
                     "type": "array",

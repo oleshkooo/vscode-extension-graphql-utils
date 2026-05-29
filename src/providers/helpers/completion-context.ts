@@ -6,7 +6,7 @@ export type CompletionContext =
     | { kind: 'directive-arg-name'; directiveName: string }
     | { kind: 'directive-arg-value'; directiveName: string; argName: string }
     | { kind: 'directive-location' }
-    | { kind: 'type-position' }
+    | { kind: 'type-position'; enclosingType: string | undefined }
     | { kind: 'keywords' }
     | { kind: 'none' }
 
@@ -31,7 +31,8 @@ export function detectCompletionContext(document: TextDocument, position: Positi
             if (parenScope.atValuePosition) return { kind: 'none' }
             return { kind: 'directive-arg-name', directiveName: parenScope.directiveName }
         }
-        if (parenScope.atValuePosition) return { kind: 'type-position' }
+        if (parenScope.atValuePosition)
+            return { kind: 'type-position', enclosingType: detectEnclosingTypeDef(stripped) }
         return { kind: 'none' }
     }
 
@@ -40,7 +41,7 @@ export function detectCompletionContext(document: TextDocument, position: Positi
     if (isDirectiveLocationContext(stripped, currentLine)) return { kind: 'directive-location' }
 
     if (/\bextend\s+(type|input|enum|interface|union|scalar)\s+[_A-Za-z0-9]*$/.test(currentLine)) {
-        return { kind: 'type-position' }
+        return { kind: 'type-position', enclosingType: undefined }
     }
 
     if (/\b(type|input|enum|interface|union|scalar|directive)\s+@?[_A-Za-z0-9]*$/.test(currentLine)) {
@@ -48,14 +49,15 @@ export function detectCompletionContext(document: TextDocument, position: Positi
     }
 
     if (/\bimplements\s+(?:[A-Z][_0-9A-Za-z]*\s*&\s*)*[_A-Za-z0-9]*$/.test(currentLine)) {
-        return { kind: 'type-position' }
+        return { kind: 'type-position', enclosingType: detectEnclosingTypeDef(stripped) }
     }
     if (/&\s*[_A-Za-z0-9]*$/.test(currentLine)) {
-        return { kind: 'type-position' }
+        return { kind: 'type-position', enclosingType: detectEnclosingTypeDef(stripped) }
     }
 
     if (isInsideBlock(stripped)) {
-        if (hasColonOnCurrentLineOutsideParens(currentLine)) return { kind: 'type-position' }
+        if (hasColonOnCurrentLineOutsideParens(currentLine))
+            return { kind: 'type-position', enclosingType: detectEnclosingTypeDef(stripped) }
         return { kind: 'none' }
     }
 
@@ -119,6 +121,30 @@ function identifierBefore(s: string, idx: number): string | undefined {
     const start = j + 1
     if (end <= start) return undefined
     return s.slice(start, end)
+}
+
+function detectEnclosingTypeDef(stripped: string): string | undefined {
+    let depth = 0
+    let openIdx = -1
+    for (let i = stripped.length - 1; i >= 0; i--) {
+        const ch = stripped[i]
+        if (ch === '}') depth++
+        else if (ch === '{') {
+            if (depth === 0) {
+                openIdx = i
+                break
+            }
+            depth--
+        }
+    }
+    if (openIdx === -1) return undefined
+
+    const before = stripped.slice(0, openIdx)
+    const m =
+        /\b(?:extend\s+)?(?:type|input|enum|interface|union|scalar)\s+([A-Z][_0-9A-Za-z]*)(?:\s+implements\s+[A-Z][_0-9A-Za-z]*(?:\s*&\s*[A-Z][_0-9A-Za-z]*)*)?(?:\s+@[_A-Za-z][_0-9A-Za-z]*(?:\s*\([^()]*\))?)*\s*$/.exec(
+            before
+        )
+    return m?.[1]
 }
 
 function isInsideBlock(stripped: string): boolean {

@@ -104,7 +104,7 @@ any folder with `.gql` files and exercise the providers.
 ## Publishing
 
 ```sh
-npm run package               # vsce package → graphql-utils-X.Y.Z.vsix
+npm run package               # vsce package → oleshkos-graphql-X.Y.Z.vsix
 npm run publish               # vsce publish (needs marketplace PAT)
 ```
 
@@ -112,8 +112,6 @@ npm run publish               # vsce publish (needs marketplace PAT)
 strips `src/`, sourcemaps, configs, and node_modules from the published VSIX.
 
 ## TypeScript strictness
-
-The settings come straight from `graphql-mcp` for consistency. Notable flags:
 
 - `noEmit: true` — bundler emits.
 - `verbatimModuleSyntax: true` — explicit `import type` where needed.

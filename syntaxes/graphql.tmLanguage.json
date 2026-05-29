@@ -371,7 +371,7 @@
                 {
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": {
-                        "1": { "name": "entity.name.type.argument.graphql" },
+                        "1": { "name": "variable.parameter.graphql" },
                         "2": { "name": "punctuation.colon.graphql" }
                     }
                 },
@@ -394,18 +394,33 @@
                 {
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": {
-                        "1": { "name": "entity.name.type.argument.graphql" },
+                        "1": { "name": "entity.name.type.graphql" },
                         "2": { "name": "punctuation.colon.graphql" }
                     }
                 },
                 { "include": "#strings" },
                 { "include": "#constants" },
-                { "include": "#enum-value" },
+                { "include": "#type-name" },
                 { "include": "#variables" },
-                { "include": "#value-list" },
+                { "include": "#directive-call-list" },
                 { "include": "#value-object" },
                 { "include": "#directive-usage" },
                 { "match": ",", "name": "punctuation.separator.graphql" }
+            ]
+        },
+        "directive-call-list": {
+            "begin": "\\[",
+            "beginCaptures": { "0": { "name": "punctuation.bracket.open.graphql" } },
+            "end": "\\]",
+            "endCaptures": { "0": { "name": "punctuation.bracket.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#type-name" },
+                { "include": "#variables" },
+                { "include": "#directive-call-list" },
+                { "include": "#value-object" }
             ]
         },
         "directive-usage": {

@@ -1,4 +1,4 @@
-# graphql-utils — Claude / agent guidelines
+# Oleshko's graph — Claude / agent guidelines
 
 VSCode extension providing zero-config GraphQL & Apollo Federation language
 support. Targets backend schema files (`.gql`, `.graphql`) plus syntax

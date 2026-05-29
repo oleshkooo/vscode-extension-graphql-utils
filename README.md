@@ -1,4 +1,4 @@
-# GraphQL Utils
+# Oleshko's GraphQL
 
 Zero-config GraphQL & Apollo Federation language support for VS Code.
 
