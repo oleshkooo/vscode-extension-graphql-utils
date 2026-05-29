@@ -148,7 +148,7 @@ export class WorkspaceIndexer extends Indexer {
             this.liveTimers.delete(key)
             this.reindexFromSource(doc.uri, doc.getText())
             this.diagnostics.revalidateAll()
-        }, this.cfg.indexer.liveDebounceMs)
+        }, this.cfg.indexer.debounceMs)
         this.liveTimers.set(key, timer)
     }
 }

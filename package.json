@@ -118,13 +118,8 @@
                 },
                 "oleshkoGraphql.indexer.debounceMs": {
                     "type": "number",
-                    "default": 20,
-                    "description": "Debounce window for re-indexing after file changes."
-                },
-                "oleshkoGraphql.indexer.liveDebounceMs": {
-                    "type": "number",
-                    "default": 150,
-                    "description": "Debounce window for live re-validation while typing (before save)."
+                    "default": 250,
+                    "description": "Debounce window (ms) for re-indexing on file changes and live re-validation while typing."
                 },
                 "oleshkoGraphql.telemetry.enabled": {
                     "type": "boolean",
