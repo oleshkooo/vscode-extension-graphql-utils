@@ -6,7 +6,9 @@ import { Logger } from '../logger/base-logger'
 import { GraphqlParser } from '../parser/base-parser'
 import { FileWatcher } from '../watcher/base-watcher'
 import { Indexer } from './base-indexer'
+import { extractDirectiveReferencesViaRegex } from './helpers/directive-extractor'
 import { analyzeDocument } from './helpers/document-analyzer'
+import { OffsetTable } from './helpers/positions'
 import { SymbolIndex } from './symbol-index'
 
 @singleton()
@@ -45,13 +47,22 @@ export class WorkspaceIndexer extends Indexer {
         try {
             const bytes = await workspace.fs.readFile(uri)
             const source = Buffer.from(bytes).toString('utf8')
+            const offsets = new OffsetTable(source)
+            const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
             const { document, errors } = this.parser.parse(source, uri.toString())
             if (!document) {
                 if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
-                this.index.remove(uri.toString())
+                this.index.upsert({
+                    uri: uri.toString(),
+                    typeDefinitions: [],
+                    fieldDefinitions: [],
+                    typeReferences: directiveRefs,
+                    fieldReferences: []
+                })
                 return
             }
             const symbols = analyzeDocument(uri.toString(), source, document.definitions)
+            symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
             this.index.upsert(symbols)
         } catch (err) {
             this.logger.warn({ uri: uri.toString(), err }, 'Failed to index file')
@@ -60,6 +71,16 @@ export class WorkspaceIndexer extends Indexer {
 
     drop(uri: Uri): void {
         this.index.remove(uri.toString())
+    }
+
+    async rebuild(): Promise<void> {
+        for (const timer of this.pending.values()) clearTimeout(timer)
+        this.pending.clear()
+        this.index.clear()
+        const result = await this.scanner.scanAll()
+        const all = [...result.workspace, ...result.nodeModules]
+        await Promise.all(all.map(uri => this.reindex(uri)))
+        this.logger.info(this.index.stats(), 'Index rebuilt')
     }
 
     private scheduleReindex(uri: Uri): void {

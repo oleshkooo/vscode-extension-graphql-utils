@@ -1,5 +1,6 @@
 import { container, type InjectionToken } from 'tsyringe'
 import { languages, type ExtensionContext } from 'vscode'
+import { ConfigReloader } from './config/config-reloader'
 import { ConfigService } from './config/config.service'
 import { LANGUAGE_ID } from './constants'
 import { pickFileScanner } from './file-scanner'
@@ -38,6 +39,8 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
 
     const indexer = container.resolve(Indexer as InjectionToken<Indexer>)
     await indexer.start()
+
+    container.resolve(ConfigReloader).start()
 
     logger.info('GraphQL Utils ready')
 }

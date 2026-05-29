@@ -1,7 +1,6 @@
 import type {
     DefinitionNode,
     DirectiveDefinitionNode,
-    DirectiveNode,
     EnumTypeDefinitionNode,
     EnumTypeExtensionNode,
     EnumValueDefinitionNode,
@@ -135,9 +134,6 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
             }
         }
     }
-    if ('directives' in node && node.directives) {
-        for (const directive of node.directives) addDirectiveReference(ctx, directive)
-    }
 }
 
 function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDefinitionNode): void {
@@ -155,7 +151,6 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
     if (field.arguments) {
         for (const arg of field.arguments) analyzeArgument(ctx, arg)
     }
-    if (field.directives) for (const directive of field.directives) addDirectiveReference(ctx, directive)
 }
 
 function analyzeInputField(ctx: AnalyzerContext, parent: string, field: InputValueDefinitionNode): void {
@@ -171,14 +166,12 @@ function analyzeInputField(ctx: AnalyzerContext, parent: string, field: InputVal
     })
     addNestedTypeReferences(ctx, field.type)
     if (field.defaultValue) collectEnumValueRefs(ctx, typeName, field.defaultValue)
-    if (field.directives) for (const directive of field.directives) addDirectiveReference(ctx, directive)
 }
 
 function analyzeArgument(ctx: AnalyzerContext, arg: InputValueDefinitionNode): void {
     const argTypeName = innerTypeName(arg.type)
     addNestedTypeReferences(ctx, arg.type)
     if (arg.defaultValue) collectEnumValueRefs(ctx, argTypeName, arg.defaultValue)
-    if (arg.directives) for (const directive of arg.directives) addDirectiveReference(ctx, directive)
 }
 
 function analyzeEnumValue(ctx: AnalyzerContext, parent: string, value: EnumValueDefinitionNode): void {
@@ -191,7 +184,6 @@ function analyzeEnumValue(ctx: AnalyzerContext, parent: string, value: EnumValue
         nameRange: rangeOf(ctx, value.name.loc),
         description: descriptionOf(value)
     })
-    if (value.directives) for (const directive of value.directives) addDirectiveReference(ctx, directive)
 }
 
 function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode): void {
@@ -254,14 +246,6 @@ function addTypeReference(ctx: AnalyzerContext, type: NamedTypeNode): void {
         name: type.name.value,
         uri: ctx.uri,
         range: rangeOf(ctx, type.name.loc)
-    })
-}
-
-function addDirectiveReference(ctx: AnalyzerContext, directive: DirectiveNode): void {
-    ctx.typeReferences.push({
-        name: directive.name.value,
-        uri: ctx.uri,
-        range: rangeOf(ctx, directive.loc)
     })
 }
 

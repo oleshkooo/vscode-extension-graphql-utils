@@ -4,4 +4,5 @@ export abstract class Indexer {
     abstract start(): Promise<void>
     abstract reindex(uri: Uri): Promise<void>
     abstract drop(uri: Uri): void
+    abstract rebuild(): Promise<void>
 }

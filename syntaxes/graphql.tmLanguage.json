@@ -68,12 +68,12 @@
                 {
                     "name": "constant.numeric.integer.graphql",
                     "match": "-?[0-9]+"
-                },
-                {
-                    "name": "string.unquoted.enum.graphql",
-                    "match": "\\b[A-Z][_0-9A-Z]*\\b(?!\\s*[a-z])"
                 }
             ]
+        },
+        "enum-value": {
+            "name": "variable.parameter.enum.graphql",
+            "match": "\\b[_A-Z][_0-9A-Z]*\\b"
         },
         "variables": {
             "patterns": [
@@ -95,9 +95,56 @@
             "name": "entity.name.type.graphql",
             "match": "\\b[A-Z][_0-9A-Za-z]*\\b"
         },
-        "field-name": {
-            "match": "([_A-Za-z][_0-9A-Za-z]*)",
-            "name": "variable.other.property.graphql"
+        "default-value": {
+            "begin": "(=)",
+            "beginCaptures": { "1": { "name": "keyword.operator.default-value.graphql" } },
+            "end": "(?=,|\\)|\\}|\\n|$)",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#enum-value" },
+                { "include": "#variables" },
+                { "include": "#value-list" },
+                { "include": "#value-object" }
+            ]
+        },
+        "value-list": {
+            "begin": "\\[",
+            "beginCaptures": { "0": { "name": "punctuation.bracket.open.graphql" } },
+            "end": "\\]",
+            "endCaptures": { "0": { "name": "punctuation.bracket.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#enum-value" },
+                { "include": "#variables" },
+                { "include": "#value-list" },
+                { "include": "#value-object" }
+            ]
+        },
+        "value-object": {
+            "begin": "\\{",
+            "beginCaptures": { "0": { "name": "punctuation.curlybrace.open.graphql" } },
+            "end": "\\}",
+            "endCaptures": { "0": { "name": "punctuation.curlybrace.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
+                    "captures": {
+                        "1": { "name": "variable.other.property.graphql" },
+                        "2": { "name": "punctuation.colon.graphql" }
+                    }
+                },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#enum-value" },
+                { "include": "#variables" },
+                { "include": "#value-list" },
+                { "include": "#value-object" }
+            ]
         },
         "schema-definition": {
             "begin": "\\b(schema)\\b",
@@ -186,7 +233,8 @@
                     "match": "\\b(implements)\\b",
                     "name": "keyword.other.implements.graphql"
                 },
-                { "match": "[&=|]", "name": "keyword.operator.graphql" },
+                { "match": "[&|]", "name": "keyword.operator.graphql" },
+                { "match": "=", "name": "keyword.operator.equals.graphql" },
                 { "include": "#directive-usage" },
                 { "include": "#enum-body" },
                 { "include": "#field-block" },
@@ -269,8 +317,8 @@
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": { "2": { "name": "punctuation.colon.graphql" } }
                 },
+                { "include": "#default-value" },
                 { "include": "#directive-usage" },
-                { "include": "#constants" },
                 { "include": "#built-in-scalars" },
                 { "include": "#federation-scalars" },
                 { "include": "#type-name" },
@@ -286,10 +334,7 @@
                 { "include": "#comments" },
                 { "include": "#description" },
                 { "include": "#directive-usage" },
-                {
-                    "name": "constant.other.enum.graphql",
-                    "match": "\\b[_A-Z][_0-9A-Z]*\\b"
-                }
+                { "include": "#enum-value" }
             ]
         },
         "field-arg-defs": {
@@ -300,9 +345,6 @@
             "patterns": [
                 { "include": "#comments" },
                 { "include": "#description" },
-                { "include": "#strings" },
-                { "include": "#constants" },
-                { "include": "#variables" },
                 {
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": {
@@ -310,11 +352,12 @@
                         "2": { "name": "punctuation.colon.graphql" }
                     }
                 },
+                { "include": "#default-value" },
                 { "include": "#directive-usage" },
                 { "include": "#built-in-scalars" },
                 { "include": "#federation-scalars" },
                 { "include": "#type-name" },
-                { "match": "[!\\[\\]=,]", "name": "keyword.operator.graphql" }
+                { "match": "[!\\[\\],]", "name": "keyword.operator.graphql" }
             ]
         },
         "directive-arg-defs": {
@@ -325,8 +368,6 @@
             "patterns": [
                 { "include": "#comments" },
                 { "include": "#description" },
-                { "include": "#strings" },
-                { "include": "#constants" },
                 {
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": {
@@ -334,11 +375,37 @@
                         "2": { "name": "punctuation.colon.graphql" }
                     }
                 },
+                { "include": "#default-value" },
                 { "include": "#directive-usage" },
                 { "include": "#built-in-scalars" },
                 { "include": "#federation-scalars" },
                 { "include": "#type-name" },
-                { "match": "[!\\[\\]=,]", "name": "keyword.operator.graphql" }
+                { "match": "[!\\[\\],]", "name": "keyword.operator.graphql" }
+            ]
+        },
+        "directive-call-args": {
+            "begin": "\\(",
+            "beginCaptures": { "0": { "name": "punctuation.paren.open.graphql" } },
+            "end": "\\)",
+            "endCaptures": { "0": { "name": "punctuation.paren.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#description" },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
+                    "captures": {
+                        "1": { "name": "entity.name.type.argument.graphql" },
+                        "2": { "name": "punctuation.colon.graphql" }
+                    }
+                },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#enum-value" },
+                { "include": "#variables" },
+                { "include": "#value-list" },
+                { "include": "#value-object" },
+                { "include": "#directive-usage" },
+                { "match": ",", "name": "punctuation.separator.graphql" }
             ]
         },
         "directive-usage": {
@@ -349,7 +416,7 @@
             },
             "end": "(?=\\s|\\{|\\}|\\)|,|@|$)",
             "patterns": [
-                { "include": "#directive-arg-defs" }
+                { "include": "#directive-call-args" }
             ]
         },
         "selection-set": {
@@ -388,7 +455,7 @@
                     "match": "([_A-Za-z][_0-9A-Za-z]*)",
                     "name": "variable.other.property.graphql"
                 },
-                { "include": "#field-arg-defs" },
+                { "include": "#directive-call-args" },
                 { "include": "#directive-usage" },
                 { "include": "#selection-set" }
             ]

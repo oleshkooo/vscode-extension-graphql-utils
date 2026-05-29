@@ -1,7 +1,9 @@
 import { singleton } from 'tsyringe'
 import type { Position, TextDocument } from 'vscode'
 import { GraphqlParser } from '../../parser/base-parser'
+import { extractDirectiveReferencesViaRegex } from '../../indexer/helpers/directive-extractor'
 import { analyzeDocument } from '../../indexer/helpers/document-analyzer'
+import { OffsetTable } from '../../indexer/helpers/positions'
 import type {
     FieldDefinitionEntry,
     FieldReferenceEntry,
@@ -36,9 +38,22 @@ export class DocumentSymbolResolver {
 
     private parseLive(document: TextDocument): FileSymbols {
         const uri = document.uri.toString()
-        const { document: ast } = this.parser.parse(document.getText(), uri)
-        if (!ast) return empty(uri)
-        return analyzeDocument(uri, document.getText(), ast.definitions)
+        const source = document.getText()
+        const offsets = new OffsetTable(source)
+        const directiveRefs = extractDirectiveReferencesViaRegex(uri, source, offsets)
+        const { document: ast } = this.parser.parse(source, uri)
+        if (!ast) {
+            return {
+                uri,
+                typeDefinitions: [],
+                fieldDefinitions: [],
+                typeReferences: directiveRefs,
+                fieldReferences: []
+            }
+        }
+        const symbols = analyzeDocument(uri, source, ast.definitions)
+        symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
+        return symbols
     }
 }
 

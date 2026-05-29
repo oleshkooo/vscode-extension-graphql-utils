@@ -135,3 +135,37 @@ export const FEDERATION_SCALARS: readonly string[] = [
     'link__Import',
     'link__Purpose'
 ] as const
+
+export const STANDARD_DIRECTIVES: readonly FederationDirectiveSpec[] = [
+    {
+        name: 'deprecated',
+        locations: ['FIELD_DEFINITION', 'ENUM_VALUE', 'ARGUMENT_DEFINITION', 'INPUT_FIELD_DEFINITION'],
+        args: [
+            {
+                name: 'reason',
+                type: 'String',
+                description: 'Markdown-formatted explanation of why the element is deprecated.',
+                defaultValue: '"No longer supported"'
+            }
+        ],
+        description: 'Marks an element of the schema as no longer supported.'
+    },
+    {
+        name: 'skip',
+        locations: ['FIELD', 'FRAGMENT_SPREAD', 'INLINE_FRAGMENT'],
+        args: [{ name: 'if', type: 'Boolean!', description: 'Skip the selection when this argument is true.' }],
+        description: 'Conditionally exclude a field or fragment from the response.'
+    },
+    {
+        name: 'include',
+        locations: ['FIELD', 'FRAGMENT_SPREAD', 'INLINE_FRAGMENT'],
+        args: [{ name: 'if', type: 'Boolean!', description: 'Include the selection when this argument is true.' }],
+        description: 'Conditionally include a field or fragment in the response.'
+    },
+    {
+        name: 'specifiedBy',
+        locations: ['SCALAR'],
+        args: [{ name: 'url', type: 'String!', description: 'URL pointing to the scalar specification.' }],
+        description: 'Attaches a specification URL to a custom scalar.'
+    }
+] as const

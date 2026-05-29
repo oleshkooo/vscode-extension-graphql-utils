@@ -17,10 +17,12 @@ import type { TypeKind } from '../indexer/types'
 import { BuiltinScalarsRegistry } from '../scalars/builtin-scalars.registry'
 import { detectCompletionContext } from './helpers/completion-context'
 
-const RANK_SAME_FILE = 0
-const RANK_WORKSPACE = 1
-const RANK_NODE_MODULES = 2
-const RANK_BUILTIN = 3
+type CompletionRank = (typeof COMPLETION_RANK_ORDER)[number]
+const COMPLETION_RANK_ORDER = ['same-file', 'builtin', 'workspace', 'node-modules'] as const
+
+function rankOf(key: CompletionRank): number {
+    return COMPLETION_RANK_ORDER.indexOf(key)
+}
 
 @singleton()
 export class GraphqlCompletionProvider implements CompletionItemProvider {
@@ -38,6 +40,8 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
                 return new CompletionList(this.directiveItems(currentUri), true)
             case 'directive-arg-name':
                 return new CompletionList(this.directiveArgItems(ctx.directiveName), true)
+            case 'directive-arg-value':
+                return new CompletionList(this.directiveArgValueItems(ctx.directiveName, ctx.argName), true)
             case 'type-position':
                 return new CompletionList(this.typeItems(currentUri), false)
             case 'keywords':
@@ -67,7 +71,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
             const item = new CompletionItem(scalar.name, CompletionItemKind.Value)
             item.detail = 'built-in scalar'
             item.documentation = new MarkdownString(scalar.description)
-            item.sortText = sortText(RANK_BUILTIN, scalar.name)
+            item.sortText = sortText(rankOf('builtin'), scalar.name)
             items.push(item)
         }
 
@@ -89,7 +93,7 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         for (const spec of this.federation.directives()) {
             seen.add(spec.name)
             const item = this.makeDirectiveItem(spec.name, spec.description, federationDirectiveArgsMarkdown(spec))
-            item.sortText = sortText(RANK_SAME_FILE, spec.name)
+            item.sortText = sortText(rankOf('same-file'), spec.name)
             items.push(item)
         }
 
@@ -106,6 +110,33 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         }
 
         return items
+    }
+
+    private directiveArgValueItems(directiveName: string, argName: string): CompletionItem[] {
+        const argType = this.resolveDirectiveArgType(directiveName, argName)
+        if (!argType) return []
+
+        const typeDefs = this.index.findTypeDefinitions(argType)
+        const isEnum = typeDefs.some(d => d.kind === 'enum')
+        if (!isEnum) return []
+
+        const enumValues = this.index.findFieldDefinitionsByParent(argType)
+        return enumValues.map(value => {
+            const item = new CompletionItem(value.name, CompletionItemKind.EnumMember)
+            item.detail = argType
+            if (value.description) item.documentation = new MarkdownString(value.description)
+            return item
+        })
+    }
+
+    private resolveDirectiveArgType(directiveName: string, argName: string): string | undefined {
+        const spec = this.federation.getDirective(directiveName)
+        if (spec) {
+            const arg = spec.args.find(a => a.name === argName)
+            if (arg) return stripTypeWrappers(arg.type)
+        }
+        const userArg = this.index.findFieldDefinitions(directiveArgsParent(directiveName), argName)[0]
+        return userArg?.typeName
     }
 
     private directiveArgItems(directiveName: string): CompletionItem[] {
@@ -145,23 +176,28 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
 }
 
 function bestRank(defs: readonly { uri: string }[], currentUri: string): number {
-    let best = RANK_NODE_MODULES
+    const sameFile = rankOf('same-file')
+    let best: number = COMPLETION_RANK_ORDER.length
     for (const def of defs) {
-        const rank = localityRank(def.uri, currentUri)
+        const rank = rankOf(localityKey(def.uri, currentUri))
         if (rank < best) best = rank
-        if (best === RANK_SAME_FILE) return best
+        if (best === sameFile) return best
     }
     return best
 }
 
-function localityRank(defUri: string, currentUri: string): number {
-    if (defUri === currentUri) return RANK_SAME_FILE
-    if (defUri.includes('/node_modules/')) return RANK_NODE_MODULES
-    return RANK_WORKSPACE
+function localityKey(defUri: string, currentUri: string): CompletionRank {
+    if (defUri === currentUri) return 'same-file'
+    if (defUri.includes('/node_modules/')) return 'node-modules'
+    return 'workspace'
 }
 
 function sortText(rank: number, name: string): string {
     return `${rank}_${name}`
+}
+
+function stripTypeWrappers(typeStr: string): string {
+    return typeStr.replace(/[\[\]!]/g, '').trim()
 }
 
 function federationDirectiveArgsMarkdown(spec: FederationDirectiveSpec): string {
