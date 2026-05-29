@@ -48,7 +48,7 @@ flowchart LR
    infrastructure tokens, attaches `Lifecycle` to the extension context, then
    registers the four language providers and starts the indexer.
 2. **Initial scan** — `WorkspaceFileScanner` queries `workspace.findFiles` for
-   workspace globs + `node_modules` shared-lib globs in parallel.
+   workspace globs + `node_modules` type-defs globs in parallel.
 3. **Indexing** — for each URI, `WorkspaceIndexer.reindex` reads the file via
    `workspace.fs`, parses with `StandardGraphqlParser`, walks the AST in
    `document-analyzer.ts`, and upserts the resulting `FileSymbols` into

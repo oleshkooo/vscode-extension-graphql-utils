@@ -12,7 +12,7 @@ function expectSyntaxError(source: string, messageSubstr?: string): void {
     const diags = syntaxIssues(source)
     expect(diags.length, `should produce a syntax error for: ${source}`).toBeGreaterThan(0)
     const d = diags[0]!
-    expect(d.source).toBe('oleshko-graphql')
+    expect(d.source).toBe('oleshko-graphql-utils')
     expect(d.code).toBe('syntax-error')
     if (messageSubstr) expect(d.message.toLowerCase()).toContain(messageSubstr.toLowerCase())
 }

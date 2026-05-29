@@ -13,7 +13,7 @@ const SCAN_DEFAULTS = {
 }
 
 const INDEXER_DEFAULTS = {
-    debounceMs: 250
+    debounceMs: 300
 }
 
 const TELEMETRY_DEFAULTS = {

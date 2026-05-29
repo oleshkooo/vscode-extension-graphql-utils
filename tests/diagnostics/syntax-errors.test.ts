@@ -18,7 +18,7 @@ describe('parse errors surface as syntax diagnostics', () => {
             directive @dir(path: String!) on FIELD_DEFINITION
         `)
         expect(diags.length).toBeGreaterThan(0)
-        expect(diags[0]?.source).toBe('oleshko-graphql')
+        expect(diags[0]?.source).toBe('oleshko-graphql-utils')
     })
 
     it('@dir(p) — incomplete arg reports a syntax error', () => {

@@ -1,4 +1,4 @@
-# Oleshko's GraphQL
+# Oleshko's GraphQL Utils
 
 Zero-config GraphQL & Apollo Federation language support for VS Code.
 
@@ -15,8 +15,7 @@ Zero-config GraphQL & Apollo Federation language support for VS Code.
 - **Autocomplete** for known types and federation directives.
 - Built-in knowledge of Apollo Federation v2 directives — no need to declare
   them in your schema files.
-- Discovers schema files in `node_modules/*/type-defs/**` automatically — no
-  config required for shared `graphql-shared-lib`-style packages.
+- Discovers schema files in `node_modules/*/type-defs/**` automatically — no config required for shared GraphQL type-defs packages.
 
 ## Requirements
 
@@ -28,14 +27,14 @@ Zero-config GraphQL & Apollo Federation language support for VS Code.
 All settings are optional. Sensible defaults work for typical Apollo Federation
 subgraph repositories.
 
-| Setting                                | Default                             | Description                                                               |
-| -------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| `oleshkoGraphql.scan.workspaceGlobs`   | `["**/*.{graphql,gql}"]`            | Workspace globs to index.                                                 |
-| `oleshkoGraphql.scan.nodeModulesGlobs` | shared-lib defaults                 | `node_modules` globs to index.                                            |
-| `oleshkoGraphql.scan.excludeGlobs`     | `dist`, `build`, `.git`, `coverage` | Exclusions.                                                               |
-| `oleshkoGraphql.indexer.debounceMs`    | `20`                                | Re-index debounce.                                                        |
-| `oleshkoGraphql.logLevel`              | `info`                              | Output channel log level.                                                 |
-| `oleshkoGraphql.telemetry.enabled`     | `true`                              | Anonymous usage telemetry. Respects the global VS Code telemetry setting. |
+| Setting                                     | Default                             | Description                                                               |
+| ------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
+| `oleshkoGraphqlUtils.scan.workspaceGlobs`   | `["**/*.{graphql,gql}"]`            | Workspace globs to index.                                                 |
+| `oleshkoGraphqlUtils.scan.nodeModulesGlobs` | type-defs path defaults             | `node_modules` globs to index.                                            |
+| `oleshkoGraphqlUtils.scan.excludeGlobs`     | `dist`, `build`, `.git`, `coverage` | Exclusions.                                                               |
+| `oleshkoGraphqlUtils.indexer.debounceMs`    | `20`                                | Re-index debounce.                                                        |
+| `oleshkoGraphqlUtils.logLevel`              | `info`                              | Output channel log level.                                                 |
+| `oleshkoGraphqlUtils.telemetry.enabled`     | `true`                              | Anonymous usage telemetry. Respects the global VS Code telemetry setting. |
 
 ## Development
 

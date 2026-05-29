@@ -1,19 +1,29 @@
 {
-    "name": "oleshko-graphql",
-    "displayName": "Oleshko's GraphQL",
+    "name": "graphql-utils",
+    "displayName": "Oleshko's GraphQL Utils",
     "description": "Zero-config GraphQL & Apollo Federation language support: definitions, references, hover, autocomplete, syntax highlighting",
     "version": "0.1.0",
-    "publisher": "okhoma",
+    "publisher": "oleshko",
     "license": "MIT",
     "private": false,
     "type": "module",
     "main": "./dist/extension.js",
+    "icon": "icon.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/oleshkooo/vscode-extension-graphql-utils.git"
+    },
+    "bugs": {
+        "url": "https://github.com/oleshkooo/vscode-extension-graphql-utils/issues"
+    },
+    "homepage": "https://github.com/oleshkooo/vscode-extension-graphql-utils#readme",
     "engines": {
         "vscode": "^1.96.0",
         "node": ">=22"
     },
     "categories": [
         "Programming Languages",
+        "Linters",
         "Other"
     ],
     "keywords": [
@@ -65,9 +75,9 @@
             }
         ],
         "configuration": {
-            "title": "Oleshko's GraphQL",
+            "title": "Oleshko's GraphQL Utils",
             "properties": {
-                "oleshkoGraphql.logLevel": {
+                "oleshkoGraphqlUtils.logLevel": {
                     "type": "string",
                     "enum": [
                         "trace",
@@ -78,9 +88,9 @@
                         "silent"
                     ],
                     "default": "info",
-                    "description": "Log verbosity in the Oleshko's GraphQL output channel."
+                    "description": "Log verbosity in the Oleshko's GraphQL Utils output channel."
                 },
-                "oleshkoGraphql.scan.workspaceGlobs": {
+                "oleshkoGraphqlUtils.scan.workspaceGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -90,7 +100,7 @@
                     ],
                     "description": "Globs to scan inside the workspace for GraphQL schema files."
                 },
-                "oleshkoGraphql.scan.nodeModulesGlobs": {
+                "oleshkoGraphqlUtils.scan.nodeModulesGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -103,7 +113,7 @@
                     ],
                     "description": "Globs to scan inside node_modules for shared GraphQL type definitions."
                 },
-                "oleshkoGraphql.scan.excludeGlobs": {
+                "oleshkoGraphqlUtils.scan.excludeGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -116,17 +126,17 @@
                     ],
                     "description": "Globs to exclude from scanning."
                 },
-                "oleshkoGraphql.indexer.debounceMs": {
+                "oleshkoGraphqlUtils.indexer.debounceMs": {
                     "type": "number",
-                    "default": 250,
+                    "default": 300,
                     "description": "Debounce window (ms) for re-indexing on file changes and live re-validation while typing."
                 },
-                "oleshkoGraphql.telemetry.enabled": {
+                "oleshkoGraphqlUtils.telemetry.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Report anonymous usage telemetry through the VS Code telemetry channel. Respects the global telemetry setting."
                 },
-                "oleshkoGraphql.diagnostics.enabled": {
+                "oleshkoGraphqlUtils.diagnostics.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Show diagnostics for GraphQL schema issues like missing required directive arguments."

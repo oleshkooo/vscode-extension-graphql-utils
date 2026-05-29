@@ -69,8 +69,9 @@ export function pickTelemetryService(cfg: ConfigService): ClassConstructor<Telem
 All `container.register` calls live in `src/main.ts::registerInfrastructure`.
 No registration side-effects scattered across modules. If you need to
 register a new domain, add one line there. If you need to register a list
-(e.g. middleware), follow the multi-token pattern from `graphql-mcp`'s
-`registerTools()`.
+(e.g. middleware), follow the multi-token pattern used by
+`registerDiagnosticRules()` — bind several classes to the same
+`DIAGNOSTIC_RULE_TOKEN` and pull them via `@injectAll(...)`.
 
 ### Resolving abstract bases
 
@@ -94,7 +95,7 @@ do NOT write `if (telemetry) telemetry.log(...)`. They write
 - Structured first: `logger.info({ uri, count }, 'message')` — message is
   the human label, the object is the structured payload.
 - The pino instance writes to a VSCode `LogOutputChannel` via
-  `OutputChannelSink`. That channel respects the `oleshkoGraphql.logLevel`
+  `OutputChannelSink`. That channel respects the `oleshkoGraphqlUtils.logLevel`
   setting via `Logger.setLevel`, which `bootstrap()` calls during activation.
 
 ## Comments

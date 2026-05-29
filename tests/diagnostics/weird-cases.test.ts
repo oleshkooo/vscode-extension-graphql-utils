@@ -493,7 +493,7 @@ describe('diagnostic shape', () => {
         const d = diags[0]!
         expect(d.severity).toBe(3)
         expect(d.tags).toEqual([1])
-        expect(d.source).toBe('oleshko-graphql')
+        expect(d.source).toBe('oleshko-graphql-utils')
         expect(d.code).toBe('unused')
     })
 
@@ -505,7 +505,7 @@ describe('diagnostic shape', () => {
         const ctx: RuleContext = { index: ws.index, federation: new FederationRegistry() }
         const diags = new CrossFileDuplicateTypesRule().evaluate(ws.files.get('file:///a.graphql')!, ctx)
         expect(diags[0]?.severity).toBe(0)
-        expect(diags[0]?.source).toBe('oleshko-graphql')
+        expect(diags[0]?.source).toBe('oleshko-graphql-utils')
     })
 
     it('diagnostic range covers just the type name, not the whole definition', () => {
