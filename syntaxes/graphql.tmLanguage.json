@@ -1,0 +1,345 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "GraphQL",
+    "scopeName": "source.graphql",
+    "fileTypes": ["graphql", "gql"],
+    "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#schema-definition" },
+        { "include": "#type-definitions" },
+        { "include": "#directive-definition" },
+        { "include": "#extend" },
+        { "include": "#fragment-definition" },
+        { "include": "#operation" },
+        { "include": "#selection-set" }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.number-sign.graphql",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.triple.graphql",
+                    "begin": "\"\"\"",
+                    "end": "\"\"\"",
+                    "patterns": [
+                        { "name": "constant.character.escape.graphql", "match": "\\\\." }
+                    ]
+                },
+                {
+                    "name": "string.quoted.double.graphql",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        { "name": "constant.character.escape.graphql", "match": "\\\\(\"|\\\\|\\/|b|f|n|r|t|u[0-9a-fA-F]{4})" }
+                    ]
+                }
+            ]
+        },
+        "constants": {
+            "patterns": [
+                {
+                    "name": "constant.language.boolean.graphql",
+                    "match": "\\b(true|false|null)\\b"
+                },
+                {
+                    "name": "constant.numeric.float.graphql",
+                    "match": "-?[0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?"
+                },
+                {
+                    "name": "constant.numeric.integer.graphql",
+                    "match": "-?[0-9]+"
+                }
+            ]
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "name": "variable.other.graphql",
+                    "match": "\\$[_A-Za-z][_0-9A-Za-z]*"
+                }
+            ]
+        },
+        "built-in-scalars": {
+            "name": "support.type.builtin.graphql",
+            "match": "\\b(Int|Float|String|Boolean|ID)\\b"
+        },
+        "federation-scalars": {
+            "name": "support.type.federation.graphql",
+            "match": "\\b(FieldSet|_Any|_FieldSet|_Service|link__Import|link__Purpose)\\b"
+        },
+        "type-name": {
+            "name": "support.class.graphql",
+            "match": "\\b[A-Z][_0-9A-Za-z]*\\b"
+        },
+        "schema-definition": {
+            "begin": "\\b(schema)\\b",
+            "beginCaptures": {
+                "1": { "name": "keyword.other.schema.graphql" }
+            },
+            "end": "(?<=\\})",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#directives" },
+                {
+                    "begin": "\\{",
+                    "beginCaptures": { "0": { "name": "punctuation.curlybrace.open.graphql" } },
+                    "end": "\\}",
+                    "endCaptures": { "0": { "name": "punctuation.curlybrace.close.graphql" } },
+                    "patterns": [
+                        { "include": "#comments" },
+                        {
+                            "match": "\\b(query|mutation|subscription)\\s*(:)",
+                            "captures": {
+                                "1": { "name": "keyword.operation.graphql" },
+                                "2": { "name": "punctuation.colon.graphql" }
+                            }
+                        },
+                        { "include": "#built-in-scalars" },
+                        { "include": "#federation-scalars" },
+                        { "include": "#type-name" }
+                    ]
+                }
+            ]
+        },
+        "type-definitions": {
+            "patterns": [
+                {
+                    "begin": "\\b(type|input|enum|interface|union|scalar)\\s+([A-Z][_0-9A-Za-z]*)",
+                    "beginCaptures": {
+                        "1": { "name": "keyword.other.typedef.graphql" },
+                        "2": { "name": "entity.name.type.graphql" }
+                    },
+                    "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+                    "patterns": [
+                        { "include": "#comments" },
+                        { "include": "#strings" },
+                        {
+                            "match": "\\b(implements)\\b",
+                            "name": "keyword.other.implements.graphql"
+                        },
+                        {
+                            "match": "&",
+                            "name": "keyword.operator.amp.graphql"
+                        },
+                        {
+                            "match": "=",
+                            "name": "keyword.operator.equals.graphql"
+                        },
+                        {
+                            "match": "\\|",
+                            "name": "keyword.operator.pipe.graphql"
+                        },
+                        { "include": "#directives" },
+                        { "include": "#field-block" },
+                        { "include": "#built-in-scalars" },
+                        { "include": "#federation-scalars" },
+                        { "include": "#type-name" }
+                    ]
+                }
+            ]
+        },
+        "extend": {
+            "begin": "\\b(extend)\\s+(type|input|enum|interface|union|scalar|schema)\\b",
+            "beginCaptures": {
+                "1": { "name": "keyword.other.extend.graphql" },
+                "2": { "name": "keyword.other.typedef.graphql" }
+            },
+            "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                {
+                    "match": "\\b(implements)\\b",
+                    "name": "keyword.other.implements.graphql"
+                },
+                {
+                    "match": "[&=|]",
+                    "name": "keyword.operator.graphql"
+                },
+                { "include": "#directives" },
+                { "include": "#field-block" },
+                { "include": "#built-in-scalars" },
+                { "include": "#federation-scalars" },
+                { "include": "#type-name" }
+            ]
+        },
+        "directive-definition": {
+            "begin": "\\b(directive)\\s+(@)([_A-Za-z][_0-9A-Za-z]*)",
+            "beginCaptures": {
+                "1": { "name": "keyword.other.directive-def.graphql" },
+                "2": { "name": "punctuation.at.graphql" },
+                "3": { "name": "entity.name.function.directive.graphql" }
+            },
+            "end": "(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#argument-defs" },
+                {
+                    "match": "\\b(on|repeatable)\\b",
+                    "name": "keyword.other.directive-meta.graphql"
+                },
+                {
+                    "name": "constant.language.directive-location.graphql",
+                    "match": "\\b(SCHEMA|SCALAR|OBJECT|FIELD_DEFINITION|ARGUMENT_DEFINITION|INTERFACE|UNION|ENUM|ENUM_VALUE|INPUT_OBJECT|INPUT_FIELD_DEFINITION|QUERY|MUTATION|SUBSCRIPTION|FIELD|FRAGMENT_DEFINITION|FRAGMENT_SPREAD|INLINE_FRAGMENT|VARIABLE_DEFINITION)\\b"
+                },
+                {
+                    "match": "\\|",
+                    "name": "keyword.operator.pipe.graphql"
+                },
+                { "include": "#built-in-scalars" },
+                { "include": "#federation-scalars" },
+                { "include": "#type-name" }
+            ]
+        },
+        "fragment-definition": {
+            "begin": "\\b(fragment)\\s+([_A-Za-z][_0-9A-Za-z]*)\\s+(on)\\s+([A-Z][_0-9A-Za-z]*)",
+            "beginCaptures": {
+                "1": { "name": "keyword.other.fragment.graphql" },
+                "2": { "name": "entity.name.function.fragment.graphql" },
+                "3": { "name": "keyword.other.on.graphql" },
+                "4": { "name": "entity.name.type.graphql" }
+            },
+            "end": "(?<=\\})",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#directives" },
+                { "include": "#selection-set" }
+            ]
+        },
+        "operation": {
+            "begin": "\\b(query|mutation|subscription)\\b",
+            "beginCaptures": { "1": { "name": "keyword.operation.graphql" } },
+            "end": "(?<=\\})",
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#variables" },
+                {
+                    "name": "entity.name.function.operation.graphql",
+                    "match": "[_A-Za-z][_0-9A-Za-z]*"
+                },
+                { "include": "#directives" },
+                { "include": "#selection-set" }
+            ]
+        },
+        "field-block": {
+            "begin": "\\{",
+            "beginCaptures": { "0": { "name": "punctuation.curlybrace.open.graphql" } },
+            "end": "\\}",
+            "endCaptures": { "0": { "name": "punctuation.curlybrace.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(?=\\()",
+                    "captures": { "1": { "name": "entity.name.function.field.graphql" } }
+                },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
+                    "captures": {
+                        "1": { "name": "variable.other.property.graphql" },
+                        "2": { "name": "punctuation.colon.graphql" }
+                    }
+                },
+                { "include": "#argument-defs" },
+                { "include": "#directives" },
+                { "include": "#constants" },
+                { "include": "#built-in-scalars" },
+                { "include": "#federation-scalars" },
+                { "include": "#type-name" },
+                {
+                    "match": "[!\\[\\]]",
+                    "name": "keyword.operator.type.graphql"
+                }
+            ]
+        },
+        "argument-defs": {
+            "begin": "\\(",
+            "beginCaptures": { "0": { "name": "punctuation.paren.open.graphql" } },
+            "end": "\\)",
+            "endCaptures": { "0": { "name": "punctuation.paren.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#variables" },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
+                    "captures": {
+                        "1": { "name": "variable.parameter.graphql" },
+                        "2": { "name": "punctuation.colon.graphql" }
+                    }
+                },
+                { "include": "#directives" },
+                { "include": "#built-in-scalars" },
+                { "include": "#federation-scalars" },
+                { "include": "#type-name" },
+                {
+                    "match": "[!\\[\\]=,]",
+                    "name": "keyword.operator.graphql"
+                }
+            ]
+        },
+        "directives": {
+            "begin": "(@)([_A-Za-z][_0-9A-Za-z]*)",
+            "beginCaptures": {
+                "1": { "name": "punctuation.at.graphql" },
+                "2": { "name": "entity.name.function.directive.graphql" }
+            },
+            "end": "(?=\\s|\\{|\\}|\\)|,|@|$)",
+            "patterns": [
+                { "include": "#argument-defs" }
+            ]
+        },
+        "selection-set": {
+            "begin": "\\{",
+            "beginCaptures": { "0": { "name": "punctuation.curlybrace.open.graphql" } },
+            "end": "\\}",
+            "endCaptures": { "0": { "name": "punctuation.curlybrace.close.graphql" } },
+            "patterns": [
+                { "include": "#comments" },
+                { "include": "#strings" },
+                { "include": "#variables" },
+                { "include": "#constants" },
+                {
+                    "match": "(\\.\\.\\.)\\s*([_A-Za-z][_0-9A-Za-z]*)?",
+                    "captures": {
+                        "1": { "name": "keyword.operator.spread.graphql" },
+                        "2": { "name": "entity.name.function.fragment.graphql" }
+                    }
+                },
+                {
+                    "match": "\\b(on)\\s+([A-Z][_0-9A-Za-z]*)",
+                    "captures": {
+                        "1": { "name": "keyword.other.on.graphql" },
+                        "2": { "name": "entity.name.type.graphql" }
+                    }
+                },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)\\s*([_A-Za-z][_0-9A-Za-z]*)",
+                    "captures": {
+                        "1": { "name": "entity.other.alias.graphql" },
+                        "2": { "name": "punctuation.colon.graphql" },
+                        "3": { "name": "variable.other.property.graphql" }
+                    }
+                },
+                {
+                    "match": "([_A-Za-z][_0-9A-Za-z]*)",
+                    "name": "variable.other.property.graphql"
+                },
+                { "include": "#argument-defs" },
+                { "include": "#directives" },
+                { "include": "#selection-set" }
+            ]
+        }
+    }
+}

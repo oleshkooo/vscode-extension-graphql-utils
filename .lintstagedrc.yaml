@@ -1,0 +1,9 @@
+'*.{js,mjs,cjs,jsx}':
+    - prettier --write
+
+'*.{ts,tsx}':
+    - prettier --write
+    - bash -c 'npm run typecheck'
+
+'*.{json,yml,yaml,md,css,html}':
+    - prettier --write

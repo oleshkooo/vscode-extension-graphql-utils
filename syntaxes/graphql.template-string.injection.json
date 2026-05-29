@@ -1,0 +1,36 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "inline.graphql.template",
+    "injectionSelector": "L:source.ts -comment -string, L:source.tsx -comment -string, L:source.js -comment -string, L:source.jsx -comment -string, L:source.vue -comment -string, L:source.svelte -comment -string",
+    "patterns": [
+        {
+            "name": "string.template.graphql.embedded",
+            "contentName": "meta.embedded.block.graphql",
+            "begin": "(?x)(?:\\b(?:gql|graphql)\\s*|/\\*\\s*GraphQL\\s*\\*/\\s*)(`)",
+            "beginCaptures": {
+                "0": { "name": "punctuation.definition.string.template.begin.graphql" }
+            },
+            "end": "`",
+            "endCaptures": {
+                "0": { "name": "punctuation.definition.string.template.end.graphql" }
+            },
+            "patterns": [
+                {
+                    "name": "meta.template.expression.graphql",
+                    "begin": "\\$\\{",
+                    "beginCaptures": {
+                        "0": { "name": "punctuation.definition.template-expression.begin.graphql" }
+                    },
+                    "end": "\\}",
+                    "endCaptures": {
+                        "0": { "name": "punctuation.definition.template-expression.end.graphql" }
+                    },
+                    "patterns": [
+                        { "include": "source.ts#expression" }
+                    ]
+                },
+                { "include": "source.graphql" }
+            ]
+        }
+    ]
+}

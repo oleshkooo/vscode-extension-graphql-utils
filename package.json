@@ -1,0 +1,165 @@
+{
+    "name": "graphql-utils",
+    "displayName": "GraphQL Utils",
+    "description": "Zero-config GraphQL & Apollo Federation language support: definitions, references, hover, autocomplete, syntax highlighting",
+    "version": "0.1.0",
+    "publisher": "okhoma",
+    "license": "MIT",
+    "private": false,
+    "type": "module",
+    "main": "./dist/extension.js",
+    "engines": {
+        "vscode": "^1.96.0",
+        "node": ">=22"
+    },
+    "categories": [
+        "Programming Languages",
+        "Other"
+    ],
+    "keywords": [
+        "graphql",
+        "apollo",
+        "federation",
+        "gql",
+        "language-server"
+    ],
+    "activationEvents": [
+        "onLanguage:graphql",
+        "workspaceContains:**/*.graphql",
+        "workspaceContains:**/*.gql"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "graphql",
+                "aliases": [
+                    "GraphQL",
+                    "graphql"
+                ],
+                "extensions": [
+                    ".graphql",
+                    ".gql"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "graphql",
+                "scopeName": "source.graphql",
+                "path": "./syntaxes/graphql.tmLanguage.json"
+            },
+            {
+                "scopeName": "inline.graphql.template",
+                "path": "./syntaxes/graphql.template-string.injection.json",
+                "injectTo": [
+                    "source.js",
+                    "source.jsx",
+                    "source.ts",
+                    "source.tsx",
+                    "source.vue",
+                    "source.svelte"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.graphql": "graphql"
+                }
+            }
+        ],
+        "configuration": {
+            "title": "GraphQL Utils",
+            "properties": {
+                "graphqlUtils.logLevel": {
+                    "type": "string",
+                    "enum": [
+                        "trace",
+                        "debug",
+                        "info",
+                        "warn",
+                        "error",
+                        "silent"
+                    ],
+                    "default": "info",
+                    "description": "Log verbosity in the GraphQL Utils output channel."
+                },
+                "graphqlUtils.scan.workspaceGlobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "**/*.{graphql,gql}"
+                    ],
+                    "description": "Globs to scan inside the workspace for GraphQL schema files."
+                },
+                "graphqlUtils.scan.nodeModulesGlobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "node_modules/*/type-defs/**/*.{graphql,gql}",
+                        "node_modules/*/src/type-defs/**/*.{graphql,gql}",
+                        "node_modules/@*/*/type-defs/**/*.{graphql,gql}",
+                        "node_modules/@*/*/src/type-defs/**/*.{graphql,gql}"
+                    ],
+                    "description": "Globs to scan inside node_modules for shared GraphQL type definitions."
+                },
+                "graphqlUtils.scan.excludeGlobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "**/dist/**",
+                        "**/build/**",
+                        "**/.git/**",
+                        "**/coverage/**"
+                    ],
+                    "description": "Globs to exclude from scanning."
+                },
+                "graphqlUtils.indexer.debounceMs": {
+                    "type": "number",
+                    "default": 250,
+                    "description": "Debounce window for re-indexing after file changes."
+                },
+                "graphqlUtils.telemetry.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Report anonymous usage telemetry through the VS Code telemetry channel. Respects the global telemetry setting."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run build -- --env.NODE_ENV=production",
+        "build": "tsdown",
+        "build:watch": "tsdown --watch",
+        "dev": "concurrently --raw npm:build:watch npm:dev:types",
+        "dev:types": "tsc --noEmit --watch --preserveWatchOutput",
+        "typecheck": "tsc --noEmit",
+        "format": "prettier -w .",
+        "lint-staged": "lint-staged",
+        "package": "vsce package",
+        "publish": "vsce publish",
+        "prepare": "husky || true"
+    },
+    "dependencies": {
+        "graphql": "16.13.2",
+        "pino": "10.3.1",
+        "pino-pretty": "13.1.3",
+        "reflect-metadata": "0.2.2",
+        "tsyringe": "4.10.0",
+        "zod": "4.4.1"
+    },
+    "devDependencies": {
+        "@types/node": "22.10.7",
+        "@types/vscode": "1.96.0",
+        "@vscode/vsce": "3.2.1",
+        "concurrently": "9.2.1",
+        "husky": "9.1.7",
+        "lint-staged": "16.4.0",
+        "prettier": "3.8.3",
+        "tsdown": "0.22.1",
+        "typescript": "6.0.3"
+    }
+}
