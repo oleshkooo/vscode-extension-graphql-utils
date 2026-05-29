@@ -1,14 +1,17 @@
 import { singleton } from 'tsyringe'
-import { workspace, type Uri } from 'vscode'
+import { workspace, type TextDocument, type Uri } from 'vscode'
 import { ConfigService } from '../config/config.service'
+import { LANGUAGE_ID } from '../constants'
 import { DiagnosticsService } from '../diagnostics/base-diagnostics.service'
 import { FileScanner } from '../file-scanner/base-file-scanner'
+import { Lifecycle } from '../lifecycle/lifecycle'
 import { Logger } from '../logger/base-logger'
 import { GraphqlParser } from '../parser/base-parser'
 import { FileWatcher } from '../watcher/base-watcher'
 import { Indexer } from './base-indexer'
 import { extractDirectiveReferencesViaRegex } from './helpers/directive-extractor'
 import { analyzeDocument } from './helpers/document-analyzer'
+import { parseErrorsToValidationIssues } from './helpers/parse-errors'
 import { OffsetTable } from './helpers/positions'
 import { SymbolIndex } from './symbol-index'
 import type { FileSymbols } from './types'
@@ -16,6 +19,7 @@ import type { FileSymbols } from './types'
 @singleton()
 export class WorkspaceIndexer extends Indexer {
     private readonly pending = new Map<string, NodeJS.Timeout>()
+    private readonly liveTimers = new Map<string, NodeJS.Timeout>()
     private started = false
 
     constructor(
@@ -25,7 +29,8 @@ export class WorkspaceIndexer extends Indexer {
         private readonly scanner: FileScanner,
         private readonly watcher: FileWatcher,
         private readonly index: SymbolIndex,
-        private readonly diagnostics: DiagnosticsService
+        private readonly diagnostics: DiagnosticsService,
+        private readonly lifecycle: Lifecycle
     ) {
         super()
     }
@@ -45,34 +50,32 @@ export class WorkspaceIndexer extends Indexer {
             if (event.kind === 'deleted') this.drop(event.uri)
             else this.scheduleReindex(event.uri)
         })
+
+        this.lifecycle.register(
+            workspace.onDidChangeTextDocument(event => {
+                if (event.document.languageId !== LANGUAGE_ID) return
+                this.scheduleLiveReindex(event.document)
+            })
+        )
+
+        this.lifecycle.register(
+            workspace.onDidCloseTextDocument(doc => {
+                if (doc.languageId !== LANGUAGE_ID) return
+                const existing = this.liveTimers.get(doc.uri.toString())
+                if (existing) {
+                    clearTimeout(existing)
+                    this.liveTimers.delete(doc.uri.toString())
+                }
+                this.scheduleReindex(doc.uri)
+            })
+        )
     }
 
     async reindex(uri: Uri): Promise<void> {
         try {
             const bytes = await workspace.fs.readFile(uri)
             const source = Buffer.from(bytes).toString('utf8')
-            const offsets = new OffsetTable(source)
-            const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
-            const { document, errors } = this.parser.parse(source, uri.toString())
-            let symbols: FileSymbols
-            if (!document) {
-                if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
-                symbols = {
-                    uri: uri.toString(),
-                    typeDefinitions: [],
-                    fieldDefinitions: [],
-                    typeReferences: directiveRefs,
-                    fieldReferences: [],
-                    directiveUsages: [],
-                    validationIssues: [],
-                    typeEdges: []
-                }
-            } else {
-                symbols = analyzeDocument(uri.toString(), source, document.definitions)
-                symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
-            }
-            this.index.upsert(symbols)
-            this.diagnostics.evaluate(symbols)
+            this.reindexFromSource(uri, source)
         } catch (err) {
             this.logger.warn({ uri: uri.toString(), err }, 'Failed to index file')
         }
@@ -87,12 +90,43 @@ export class WorkspaceIndexer extends Indexer {
     async rebuild(): Promise<void> {
         for (const timer of this.pending.values()) clearTimeout(timer)
         this.pending.clear()
+        for (const timer of this.liveTimers.values()) clearTimeout(timer)
+        this.liveTimers.clear()
         this.index.clear()
         const result = await this.scanner.scanAll()
         const all = [...result.workspace, ...result.nodeModules]
         await Promise.all(all.map(uri => this.reindex(uri)))
         this.logger.info(this.index.stats(), 'Index rebuilt')
         this.diagnostics.revalidateAll()
+    }
+
+    private reindexFromSource(uri: Uri, source: string): void {
+        try {
+            const offsets = new OffsetTable(source)
+            const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
+            const { document, errors } = this.parser.parse(source, uri.toString())
+            let symbols: FileSymbols
+            if (!document) {
+                if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
+                symbols = {
+                    uri: uri.toString(),
+                    typeDefinitions: [],
+                    fieldDefinitions: [],
+                    typeReferences: directiveRefs,
+                    fieldReferences: [],
+                    directiveUsages: [],
+                    validationIssues: parseErrorsToValidationIssues(errors, source),
+                    typeEdges: []
+                }
+            } else {
+                symbols = analyzeDocument(uri.toString(), source, document.definitions)
+                symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
+            }
+            this.index.upsert(symbols)
+            this.diagnostics.evaluate(symbols)
+        } catch (err) {
+            this.logger.warn({ uri: uri.toString(), err }, 'Failed to analyze source')
+        }
     }
 
     private scheduleReindex(uri: Uri): void {
@@ -104,5 +138,17 @@ export class WorkspaceIndexer extends Indexer {
             void this.reindex(uri).then(() => this.diagnostics.revalidateAll())
         }, this.cfg.indexer.debounceMs)
         this.pending.set(key, timer)
+    }
+
+    private scheduleLiveReindex(doc: TextDocument): void {
+        const key = doc.uri.toString()
+        const existing = this.liveTimers.get(key)
+        if (existing) clearTimeout(existing)
+        const timer = setTimeout(() => {
+            this.liveTimers.delete(key)
+            this.reindexFromSource(doc.uri, doc.getText())
+            this.diagnostics.revalidateAll()
+        }, this.cfg.indexer.liveDebounceMs)
+        this.liveTimers.set(key, timer)
     }
 }

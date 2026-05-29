@@ -3,6 +3,7 @@ import type { Position, TextDocument } from 'vscode'
 import { GraphqlParser } from '../../parser/base-parser'
 import { extractDirectiveReferencesViaRegex } from '../../indexer/helpers/directive-extractor'
 import { analyzeDocument } from '../../indexer/helpers/document-analyzer'
+import { parseErrorsToValidationIssues } from '../../indexer/helpers/parse-errors'
 import { OffsetTable } from '../../indexer/helpers/positions'
 import type {
     FieldDefinitionEntry,
@@ -41,7 +42,7 @@ export class DocumentSymbolResolver {
         const source = document.getText()
         const offsets = new OffsetTable(source)
         const directiveRefs = extractDirectiveReferencesViaRegex(uri, source, offsets)
-        const { document: ast } = this.parser.parse(source, uri)
+        const { document: ast, errors } = this.parser.parse(source, uri)
         if (!ast) {
             return {
                 uri,
@@ -50,7 +51,7 @@ export class DocumentSymbolResolver {
                 typeReferences: directiveRefs,
                 fieldReferences: [],
                 directiveUsages: [],
-                validationIssues: [],
+                validationIssues: parseErrorsToValidationIssues(errors, source),
                 typeEdges: []
             }
         }

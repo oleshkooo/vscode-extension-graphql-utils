@@ -121,6 +121,11 @@
                     "default": 20,
                     "description": "Debounce window for re-indexing after file changes."
                 },
+                "oleshkoGraphql.indexer.liveDebounceMs": {
+                    "type": "number",
+                    "default": 150,
+                    "description": "Debounce window for live re-validation while typing (before save)."
+                },
                 "oleshkoGraphql.telemetry.enabled": {
                     "type": "boolean",
                     "default": true,
@@ -140,7 +145,7 @@
         }
     },
     "scripts": {
-        "vscode:prepublish": "npm run build -- --env.NODE_ENV=production",
+        "prepare": "husky || true",
         "build": "tsdown",
         "build:watch": "tsdown --watch",
         "dev": "concurrently --raw npm:build:watch npm:dev:types",
@@ -148,9 +153,12 @@
         "typecheck": "tsc --noEmit",
         "format": "prettier -w .",
         "lint-staged": "lint-staged",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
         "package": "vsce package",
-        "publish": "vsce publish",
-        "prepare": "husky || true"
+        "vscode:prepublish": "npm run build -- --env.NODE_ENV=production",
+        "publish": "vsce publish"
     },
     "dependencies": {
         "graphql": "16.13.2",
@@ -161,14 +169,18 @@
         "zod": "4.4.1"
     },
     "devDependencies": {
+        "@swc/core": "^1.15.40",
         "@types/node": "22.10.7",
         "@types/vscode": "1.96.0",
+        "@vitest/coverage-v8": "^4.1.7",
         "@vscode/vsce": "3.2.1",
         "concurrently": "9.2.1",
         "husky": "9.1.7",
         "lint-staged": "16.4.0",
         "prettier": "3.8.3",
         "tsdown": "0.22.1",
-        "typescript": "6.0.3"
+        "typescript": "6.0.3",
+        "unplugin-swc": "^1.5.9",
+        "vitest": "^4.1.7"
     }
 }

@@ -13,7 +13,8 @@ const SCAN_DEFAULTS = {
 }
 
 const INDEXER_DEFAULTS = {
-    debounceMs: 20
+    debounceMs: 20,
+    liveDebounceMs: 150
 }
 
 const TELEMETRY_DEFAULTS = {
@@ -35,7 +36,8 @@ export const configSchema = z.object({
         .default(() => ({ ...SCAN_DEFAULTS })),
     indexer: z
         .object({
-            debounceMs: z.number().int().nonnegative().default(INDEXER_DEFAULTS.debounceMs)
+            debounceMs: z.number().int().nonnegative().default(INDEXER_DEFAULTS.debounceMs),
+            liveDebounceMs: z.number().int().nonnegative().default(INDEXER_DEFAULTS.liveDebounceMs)
         })
         .default(() => ({ ...INDEXER_DEFAULTS })),
     telemetry: z
