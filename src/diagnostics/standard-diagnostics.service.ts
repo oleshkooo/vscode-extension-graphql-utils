@@ -5,6 +5,7 @@ import { FederationRegistry } from '../federation/federation-registry'
 import { SymbolIndex } from '../indexer/symbol-index'
 import type { FileSymbols } from '../indexer/types'
 import { Lifecycle } from '../lifecycle/lifecycle'
+import { Logger } from '../logger/base-logger'
 import { DiagnosticsService } from './base-diagnostics.service'
 import { DIAGNOSTIC_RULE_TOKEN, DiagnosticRule, type RuleContext } from './rules/base-diagnostic-rule'
 
@@ -17,6 +18,7 @@ export class StandardDiagnosticsService extends DiagnosticsService {
         private readonly rules: DiagnosticRule[],
         private readonly index: SymbolIndex,
         private readonly federation: FederationRegistry,
+        private readonly logger: Logger,
         lifecycle: Lifecycle
     ) {
         super()
@@ -42,7 +44,11 @@ export class StandardDiagnosticsService extends DiagnosticsService {
         const ctx: RuleContext = { index: this.index, federation: this.federation }
         const out: Diagnostic[] = []
         for (const rule of this.rules) {
-            out.push(...rule.evaluate(symbols, ctx))
+            try {
+                out.push(...rule.evaluate(symbols, ctx))
+            } catch (err) {
+                this.logger.error({ rule: rule.constructor.name, uri: symbols.uri, err }, 'Diagnostic rule failed')
+            }
         }
         return out
     }
