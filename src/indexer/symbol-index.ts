@@ -71,6 +71,12 @@ export class SymbolIndex {
         return out
     }
 
+    *iterateAllFieldReferences(): IterableIterator<FieldReferenceEntry> {
+        for (const list of this.fieldReferences.values()) {
+            for (const ref of list) yield ref
+        }
+    }
+
     typeDefinitionsByKind(kind: TypeDefinitionEntry['kind']): TypeDefinitionEntry[] {
         const out: TypeDefinitionEntry[] = []
         for (const list of this.typeDefinitions.values()) {

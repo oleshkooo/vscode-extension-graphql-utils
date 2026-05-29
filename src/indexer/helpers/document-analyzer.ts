@@ -25,7 +25,7 @@ import type {
     ValueNode
 } from 'graphql'
 import { Kind, visit } from 'graphql'
-import { parseFieldSet } from './fieldset-parser'
+import { parseFieldSet, type FieldSetField } from './fieldset-parser'
 import type {
     FieldDefinitionEntry,
     FieldReferenceEntry,
@@ -275,16 +275,44 @@ function emitFieldSetRefs(
             if (!str.loc) continue
             const contentStart = str.loc.start + (str.block ? 3 : 1)
             const fields = parseFieldSet(str.value)
-            for (const field of fields) {
-                ctx.fieldReferences.push({
-                    parentTypeName: hostType,
-                    name: field.name,
-                    uri: ctx.uri,
-                    range: ctx.offsets.rangeAt(contentStart + field.nameStart, contentStart + field.nameEnd)
-                })
-            }
+            emitFieldSetLevel(ctx, hostType, [], fields, contentStart)
         }
     }
+}
+
+function emitFieldSetLevel(
+    ctx: AnalyzerContext,
+    hostType: string,
+    path: readonly string[],
+    fields: readonly FieldSetField[],
+    contentStart: number
+): void {
+    const parent = path.length === 0 ? hostType : encodeFsPath(hostType, path)
+    for (const field of fields) {
+        ctx.fieldReferences.push({
+            parentTypeName: parent,
+            name: field.name,
+            uri: ctx.uri,
+            range: ctx.offsets.rangeAt(contentStart + field.nameStart, contentStart + field.nameEnd)
+        })
+        if (field.subFields.length > 0) {
+            emitFieldSetLevel(ctx, hostType, [...path, field.name], field.subFields, contentStart)
+        }
+    }
+}
+
+const FS_PATH_PREFIX = '@@fspath:'
+
+export function encodeFsPath(hostType: string, path: readonly string[]): string {
+    return `${FS_PATH_PREFIX}${hostType}/${path.join('/')}`
+}
+
+export function parseFsPath(parent: string): { hostType: string; path: string[] } | undefined {
+    if (!parent.startsWith(FS_PATH_PREFIX)) return undefined
+    const body = parent.slice(FS_PATH_PREFIX.length)
+    const slash = body.indexOf('/')
+    if (slash === -1) return undefined
+    return { hostType: body.slice(0, slash), path: body.slice(slash + 1).split('/') }
 }
 
 function collectEnumValueRefs(ctx: AnalyzerContext, expectedTypeName: string, value: ValueNode): void {

@@ -8,7 +8,7 @@ import {
     type TextDocument
 } from 'vscode'
 import { FederationRegistry } from '../federation/federation-registry'
-import { directiveArgsParent, parseDirectiveArgPlaceholder } from '../indexer/helpers/document-analyzer'
+import { directiveArgsParent, parseDirectiveArgPlaceholder, parseFsPath } from '../indexer/helpers/document-analyzer'
 import { SymbolIndex } from '../indexer/symbol-index'
 import { DocumentSymbolResolver } from './helpers/document-symbol-resolver'
 
@@ -39,13 +39,30 @@ export class GraphqlDefinitionProvider implements VscDefinitionProvider {
     }
 
     private locationsForResolvedField(parent: string, name: string): Location[] {
-        const placeholder = parseDirectiveArgPlaceholder(parent)
-        if (!placeholder) {
-            return this.index.findFieldDefinitions(parent, name).map(toNameLocation)
+        const dirArg = parseDirectiveArgPlaceholder(parent)
+        if (dirArg) {
+            const actualType = this.resolveDirectiveArgType(dirArg.directiveName, dirArg.argName)
+            if (!actualType) return []
+            return this.index.findFieldDefinitions(actualType, name).map(toNameLocation)
         }
-        const actualType = this.resolveDirectiveArgType(placeholder.directiveName, placeholder.argName)
-        if (!actualType) return []
-        return this.index.findFieldDefinitions(actualType, name).map(toNameLocation)
+        const fsPath = parseFsPath(parent)
+        if (fsPath) {
+            const actualType = this.resolveFsPath(fsPath.hostType, fsPath.path)
+            if (!actualType) return []
+            return this.index.findFieldDefinitions(actualType, name).map(toNameLocation)
+        }
+        return this.index.findFieldDefinitions(parent, name).map(toNameLocation)
+    }
+
+    private resolveFsPath(hostType: string, path: readonly string[]): string | undefined {
+        let currentType = hostType
+        for (const segment of path) {
+            const fields = this.index.findFieldDefinitions(currentType, segment)
+            const first = fields[0]
+            if (!first) return undefined
+            currentType = first.typeName
+        }
+        return currentType
     }
 
     private resolveDirectiveArgType(directiveName: string, argName: string): string | undefined {
