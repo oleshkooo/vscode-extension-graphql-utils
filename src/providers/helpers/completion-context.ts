@@ -164,7 +164,9 @@ function isInsideBlock(stripped: string): boolean {
 }
 
 function detectDefaultValueType(currentLine: string): string | undefined {
-    const match = /:\s*\[?\s*([_A-Za-z][_0-9A-Za-z]*)[\s!\]]*=\s*[_A-Za-z0-9]*$/.exec(currentLine)
+    const match = /:\s*\[?\s*([_A-Za-z][_0-9A-Za-z]*)[\s!\]]*=\s*\[?\s*(?:[_A-Za-z0-9]+\s*,\s*)*[_A-Za-z0-9]*$/.exec(
+        currentLine
+    )
     return match?.[1]
 }
 

@@ -52,6 +52,34 @@ describe('default-value completion context', () => {
         if (ctx.kind === 'default-value') expect(ctx.typeName).toBe('Role')
     })
 
+    it('detects position right after the opening bracket of a list default', () => {
+        const ctx = detectAtEnd(`type Query {
+    field(arg: [Role!]! = [`)
+        expect(ctx.kind).toBe('default-value')
+        if (ctx.kind === 'default-value') expect(ctx.typeName).toBe('Role')
+    })
+
+    it('detects a partial value inside a list default', () => {
+        const ctx = detectAtEnd(`type Query {
+    types: [MarkableMediaSuggestionType]! = [NO_PHOTO_TAG`)
+        expect(ctx.kind).toBe('default-value')
+        if (ctx.kind === 'default-value') expect(ctx.typeName).toBe('MarkableMediaSuggestionType')
+    })
+
+    it('detects a partial value after a comma in a list default', () => {
+        const ctx = detectAtEnd(`type Query {
+    roles: [Role!]! = [ADMIN, US`)
+        expect(ctx.kind).toBe('default-value')
+        if (ctx.kind === 'default-value') expect(ctx.typeName).toBe('Role')
+    })
+
+    it('detects the position right after a comma with whitespace in a list default', () => {
+        const ctx = detectAtEnd(`type Query {
+    roles: [Role!]! = [ADMIN, `)
+        expect(ctx.kind).toBe('default-value')
+        if (ctx.kind === 'default-value') expect(ctx.typeName).toBe('Role')
+    })
+
     it('falls back to type-position when no = is present', () => {
         const ctx = detectAtEnd(`type Query {
     field(arg: `)
