@@ -24,7 +24,8 @@ function readWorkspaceConfig(cfg: WorkspaceConfiguration): unknown {
         },
         diagnostics: {
             enabled: cfg.get('diagnostics.enabled'),
-            unknownReferences: cfg.get('diagnostics.unknownReferences')
+            unknownReferences: cfg.get('diagnostics.unknownReferences'),
+            knownDirectives: cfg.get('diagnostics.knownDirectives')
         }
     }
 }

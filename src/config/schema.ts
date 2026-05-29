@@ -36,7 +36,8 @@ const UNKNOWN_REFERENCES_SEVERITIES = ['error', 'warning', 'off'] as const
 
 const DIAGNOSTICS_DEFAULTS = {
     enabled: true,
-    unknownReferences: 'error' as UnknownReferencesSeverity
+    unknownReferences: 'error' as UnknownReferencesSeverity,
+    knownDirectives: ['constraint']
 }
 
 export const configSchema = z.object({
@@ -62,7 +63,8 @@ export const configSchema = z.object({
     diagnostics: z
         .object({
             enabled: z.boolean().default(DIAGNOSTICS_DEFAULTS.enabled),
-            unknownReferences: z.enum(UNKNOWN_REFERENCES_SEVERITIES).default(DIAGNOSTICS_DEFAULTS.unknownReferences)
+            unknownReferences: z.enum(UNKNOWN_REFERENCES_SEVERITIES).default(DIAGNOSTICS_DEFAULTS.unknownReferences),
+            knownDirectives: z.array(z.string()).default([...DIAGNOSTICS_DEFAULTS.knownDirectives])
         })
         .default(() => ({ ...DIAGNOSTICS_DEFAULTS }))
 })

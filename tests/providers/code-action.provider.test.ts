@@ -14,7 +14,7 @@ function fakeContext(diagnostics: Diagnostic[]): CodeActionContext {
 }
 
 function configWith(unknownReferences: 'error' | 'warning' | 'off' = 'error'): ConfigService {
-    return { diagnostics: { unknownReferences } } as unknown as ConfigService
+    return { diagnostics: { unknownReferences, knownDirectives: [] } } as unknown as ConfigService
 }
 
 const federation = new FederationRegistry()

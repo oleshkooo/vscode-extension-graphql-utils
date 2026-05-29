@@ -40,7 +40,12 @@ export class UnknownReferencesRule extends DiagnosticRule {
 
     private isKnownDirective(usage: DirectiveUsageEntry, ctx: RuleContext): boolean {
         if (ctx.federation.isBuiltinDirective(usage.name)) return true
+        if (this.allowedDirectiveNames().has(usage.name)) return true
         return ctx.index.findTypeDefinitions(usage.name).some(d => d.kind === 'directive')
+    }
+
+    private allowedDirectiveNames(): Set<string> {
+        return new Set(this.cfg.diagnostics.knownDirectives.map(name => name.replace(/^@/, '')))
     }
 }
 

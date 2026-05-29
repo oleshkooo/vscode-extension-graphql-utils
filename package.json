@@ -161,6 +161,16 @@
                     ],
                     "default": "error",
                     "description": "Severity for references to types and directives that are not defined anywhere in the indexed workspace. Set to 'off' for federation-only setups where some types are owned by other subgraphs."
+                },
+                "oleshkoGraphqlUtils.diagnostics.knownDirectives": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "constraint"
+                    ],
+                    "description": "Directive names that should not be flagged as 'Unknown directive' even though they are not declared in the indexed schema. Useful for runtime-only directives added by libraries (e.g. 'constraint' from graphql-constraint-directive). Names may be written with or without the '@' prefix."
                 }
             }
         },

@@ -5,16 +5,26 @@ import { FederationRegistry } from '../../src/federation/federation-registry'
 import { UnknownReferencesRule } from '../../src/diagnostics/rules/unknown-references.rule'
 import { makeWorkspace } from '../helpers/build-symbols'
 
-function ruleWith(setting: UnknownReferencesSeverity): UnknownReferencesRule {
-    const cfg = { diagnostics: { unknownReferences: setting } } as unknown as ConfigService
+interface RuleOptions {
+    setting?: UnknownReferencesSeverity
+    knownDirectives?: string[]
+}
+
+function ruleWith(opts: RuleOptions = {}): UnknownReferencesRule {
+    const cfg = {
+        diagnostics: {
+            unknownReferences: opts.setting ?? 'error',
+            knownDirectives: opts.knownDirectives ?? []
+        }
+    } as unknown as ConfigService
     return new UnknownReferencesRule(cfg)
 }
 
 const federation = new FederationRegistry()
 
-function evaluateAll(files: Record<string, string>, setting: UnknownReferencesSeverity = 'error') {
+function evaluateAll(files: Record<string, string>, opts: RuleOptions = {}) {
     const ws = makeWorkspace(files)
-    const rule = ruleWith(setting)
+    const rule = ruleWith(opts)
     const out: { code: string; message: string }[] = []
     for (const symbols of ws.files.values()) {
         for (const d of rule.evaluate(symbols, { index: ws.index, federation })) {
@@ -181,12 +191,12 @@ describe('unknown-references rule (configuration)', () => {
                     }
                 `
             },
-            'off'
+            { setting: 'off' }
         )
         expect(diags).toEqual([])
     })
 
-    it("severity 'warning' downgrades the diagnostic", () => {
+    it('severity warning downgrades the diagnostic', () => {
         const ws = makeWorkspace({
             'a.graphql': `
                 type Query {
@@ -194,10 +204,70 @@ describe('unknown-references rule (configuration)', () => {
                 }
             `
         })
-        const rule = ruleWith('warning')
+        const rule = ruleWith({ setting: 'warning' })
         const symbols = ws.files.get('a.graphql')!
         const diags = rule.evaluate(symbols, { index: ws.index, federation })
         expect(diags).toHaveLength(1)
         expect(diags[0]?.severity).toBe(1)
+    })
+
+    it('suppresses unknown-directive for names in knownDirectives', () => {
+        const diags = evaluateAll(
+            {
+                'a.graphql': `
+                    type Query {
+                        name: String @constraint(minLength: 1)
+                    }
+                `
+            },
+            { knownDirectives: ['constraint'] }
+        )
+        expect(diags).toEqual([])
+    })
+
+    it('accepts known-directive entries written with a leading @', () => {
+        const diags = evaluateAll(
+            {
+                'a.graphql': `
+                    type Query {
+                        n: String @cost(weight: 5)
+                    }
+                `
+            },
+            { knownDirectives: ['@cost'] }
+        )
+        expect(diags).toEqual([])
+    })
+
+    it('still flags directives not present in knownDirectives', () => {
+        const diags = evaluateAll(
+            {
+                'a.graphql': `
+                    type Query {
+                        n: String @somethingElse
+                    }
+                `
+            },
+            { knownDirectives: ['constraint'] }
+        )
+        expect(diags.filter(d => d.code === 'unknown-directive')).toEqual([
+            { code: 'unknown-directive', message: "Unknown directive '@somethingElse'" }
+        ])
+    })
+
+    it('knownDirectives does not suppress unknown-type diagnostics', () => {
+        const diags = evaluateAll(
+            {
+                'a.graphql': `
+                    type Query {
+                        n: NoSuchType
+                    }
+                `
+            },
+            { knownDirectives: ['NoSuchType'] }
+        )
+        expect(diags.filter(d => d.code === 'unknown-type')).toEqual([
+            { code: 'unknown-type', message: "Unknown type 'NoSuchType'" }
+        ])
     })
 })
