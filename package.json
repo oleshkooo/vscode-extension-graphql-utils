@@ -118,7 +118,7 @@
                 },
                 "oleshkoGraphql.indexer.debounceMs": {
                     "type": "number",
-                    "default": 250,
+                    "default": 20,
                     "description": "Debounce window for re-indexing after file changes."
                 },
                 "oleshkoGraphql.telemetry.enabled": {

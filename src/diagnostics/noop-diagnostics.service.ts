@@ -5,4 +5,5 @@ import { DiagnosticsService } from './base-diagnostics.service'
 export class NoopDiagnosticsService extends DiagnosticsService {
     evaluate(): void {}
     drop(): void {}
+    revalidateAll(): void {}
 }

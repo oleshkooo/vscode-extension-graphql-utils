@@ -38,6 +38,7 @@ export class WorkspaceIndexer extends Indexer {
         const all = [...result.workspace, ...result.nodeModules]
         await Promise.all(all.map(uri => this.reindex(uri)))
         this.logger.info(this.index.stats(), 'Initial index built')
+        this.diagnostics.revalidateAll()
 
         this.watcher.start()
         this.watcher.onChange(event => {
@@ -62,7 +63,8 @@ export class WorkspaceIndexer extends Indexer {
                     fieldDefinitions: [],
                     typeReferences: directiveRefs,
                     fieldReferences: [],
-                    directiveUsages: []
+                    directiveUsages: [],
+                    validationIssues: []
                 }
             } else {
                 symbols = analyzeDocument(uri.toString(), source, document.definitions)
@@ -78,6 +80,7 @@ export class WorkspaceIndexer extends Indexer {
     drop(uri: Uri): void {
         this.index.remove(uri.toString())
         this.diagnostics.drop(uri.toString())
+        this.diagnostics.revalidateAll()
     }
 
     async rebuild(): Promise<void> {
@@ -88,6 +91,7 @@ export class WorkspaceIndexer extends Indexer {
         const all = [...result.workspace, ...result.nodeModules]
         await Promise.all(all.map(uri => this.reindex(uri)))
         this.logger.info(this.index.stats(), 'Index rebuilt')
+        this.diagnostics.revalidateAll()
     }
 
     private scheduleReindex(uri: Uri): void {
@@ -96,7 +100,7 @@ export class WorkspaceIndexer extends Indexer {
         if (existing) clearTimeout(existing)
         const timer = setTimeout(() => {
             this.pending.delete(key)
-            void this.reindex(uri)
+            void this.reindex(uri).then(() => this.diagnostics.revalidateAll())
         }, this.cfg.indexer.debounceMs)
         this.pending.set(key, timer)
     }

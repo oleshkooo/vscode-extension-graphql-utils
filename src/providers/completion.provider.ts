@@ -128,6 +128,8 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         const argType = this.resolveDirectiveArgType(directiveName, argName)
         if (!argType) return []
 
+        if (argType === 'Boolean') return booleanLiteralItems()
+
         const typeDefs = this.index.findTypeDefinitions(argType)
         const isEnum = typeDefs.some(d => d.kind === 'enum')
         if (!isEnum) return []
@@ -212,6 +214,14 @@ function newItem(label: string, kind: CompletionItemKind): CompletionItem {
     const item = new CompletionItem(label, kind)
     item.filterText = label.toLowerCase()
     return item
+}
+
+function booleanLiteralItems(): CompletionItem[] {
+    return ['true', 'false'].map(literal => {
+        const item = newItem(literal, CompletionItemKind.Value)
+        item.detail = 'Boolean'
+        return item
+    })
 }
 
 function stripTypeWrappers(typeStr: string): string {

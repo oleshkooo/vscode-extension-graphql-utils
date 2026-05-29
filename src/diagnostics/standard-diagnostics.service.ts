@@ -25,15 +25,25 @@ export class StandardDiagnosticsService extends DiagnosticsService {
     }
 
     evaluate(symbols: FileSymbols): void {
-        const ctx: RuleContext = { index: this.index, federation: this.federation }
-        const diagnostics: Diagnostic[] = []
-        for (const rule of this.rules) {
-            diagnostics.push(...rule.evaluate(symbols, ctx))
-        }
-        this.collection.set(Uri.parse(symbols.uri), diagnostics)
+        this.collection.set(Uri.parse(symbols.uri), this.runRules(symbols))
     }
 
     drop(uri: string): void {
         this.collection.delete(Uri.parse(uri))
+    }
+
+    revalidateAll(): void {
+        for (const symbols of this.index.iterateFiles()) {
+            this.collection.set(Uri.parse(symbols.uri), this.runRules(symbols))
+        }
+    }
+
+    private runRules(symbols: FileSymbols): Diagnostic[] {
+        const ctx: RuleContext = { index: this.index, federation: this.federation }
+        const out: Diagnostic[] = []
+        for (const rule of this.rules) {
+            out.push(...rule.evaluate(symbols, ctx))
+        }
+        return out
     }
 }

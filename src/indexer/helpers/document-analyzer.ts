@@ -33,7 +33,8 @@ import type {
     FileSymbols,
     TypeDefinitionEntry,
     TypeKind,
-    TypeReferenceEntry
+    TypeReferenceEntry,
+    ValidationIssue
 } from '../types'
 import { OffsetTable } from './positions'
 
@@ -45,6 +46,7 @@ interface AnalyzerContext {
     typeReferences: TypeReferenceEntry[]
     fieldReferences: FieldReferenceEntry[]
     directiveUsages: DirectiveUsageEntry[]
+    validationIssues: ValidationIssue[]
 }
 
 const TYPE_DEF_KINDS = new Map<string, { kind: TypeKind; isExtension: boolean }>([
@@ -70,10 +72,12 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         fieldDefinitions: [],
         typeReferences: [],
         fieldReferences: [],
-        directiveUsages: []
+        directiveUsages: [],
+        validationIssues: []
     }
 
     for (const def of definitions) analyzeDefinition(ctx, def)
+    detectDuplicateTypeNames(ctx, definitions)
 
     const document: DocumentNode = { kind: Kind.DOCUMENT, definitions: definitions as DefinitionNode[] }
     visit(document, {
@@ -98,7 +102,8 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         fieldDefinitions: ctx.fieldDefinitions,
         typeReferences: ctx.typeReferences,
         fieldReferences: ctx.fieldReferences,
-        directiveUsages: ctx.directiveUsages
+        directiveUsages: ctx.directiveUsages,
+        validationIssues: ctx.validationIssues
     }
 }
 
@@ -167,9 +172,21 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
         for (const named of node.types) addTypeReference(ctx, named)
     }
     if ('values' in node && node.values) {
+        detectDuplicates(
+            ctx,
+            node.values,
+            name => `Duplicate enum value '${name}' in '${entry.name}'`,
+            'duplicate-enum-value'
+        )
         for (const value of node.values) analyzeEnumValue(ctx, entry.name, value)
     }
     if ('fields' in node && node.fields) {
+        detectDuplicates(
+            ctx,
+            node.fields as readonly { name: { value: string; loc?: Location } }[],
+            name => `Duplicate field '${name}' in '${entry.name}'`,
+            'duplicate-field'
+        )
         if (kind === 'input') {
             for (const field of node.fields as readonly InputValueDefinitionNode[]) {
                 analyzeInputField(ctx, entry.name, field)
@@ -198,6 +215,12 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
     })
     addNestedTypeReferences(ctx, field.type)
     if (field.arguments) {
+        detectDuplicates(
+            ctx,
+            field.arguments,
+            name => `Duplicate argument '${name}' on field '${parent}.${field.name.value}'`,
+            'duplicate-argument'
+        )
         for (const arg of field.arguments) analyzeArgument(ctx, arg)
     }
     if (field.directives) {
@@ -250,6 +273,12 @@ function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode
         description: descriptionOf(node)
     })
     if (node.arguments) {
+        detectDuplicates(
+            ctx,
+            node.arguments,
+            name => `Duplicate argument '${name}' on directive '@${directiveName}'`,
+            'duplicate-argument'
+        )
         const parent = directiveArgsParent(directiveName)
         for (const arg of node.arguments) {
             addNestedTypeReferences(ctx, arg.type)
@@ -357,6 +386,49 @@ function addTypeReference(ctx: AnalyzerContext, type: NamedTypeNode): void {
         uri: ctx.uri,
         range: rangeOf(ctx, type.name.loc)
     })
+}
+
+function detectDuplicates<T extends { name: { value: string; loc?: Location } }>(
+    ctx: AnalyzerContext,
+    nodes: readonly T[],
+    message: (name: string) => string,
+    code: string
+): void {
+    const seen = new Set<string>()
+    for (const node of nodes) {
+        if (seen.has(node.name.value)) {
+            ctx.validationIssues.push({
+                message: message(node.name.value),
+                range: rangeOf(ctx, node.name.loc),
+                code
+            })
+        } else {
+            seen.add(node.name.value)
+        }
+    }
+}
+
+function detectDuplicateTypeNames(ctx: AnalyzerContext, definitions: readonly DefinitionNode[]): void {
+    const seen = new Set<string>()
+    for (const def of definitions) {
+        if (!('name' in def) || !def.name) continue
+        if (def.kind === Kind.OBJECT_TYPE_EXTENSION) continue
+        if (def.kind === Kind.INPUT_OBJECT_TYPE_EXTENSION) continue
+        if (def.kind === Kind.INTERFACE_TYPE_EXTENSION) continue
+        if (def.kind === Kind.UNION_TYPE_EXTENSION) continue
+        if (def.kind === Kind.ENUM_TYPE_EXTENSION) continue
+        if (def.kind === Kind.SCALAR_TYPE_EXTENSION) continue
+        const name = def.name.value
+        if (seen.has(name)) {
+            ctx.validationIssues.push({
+                message: `Duplicate type '${name}'`,
+                range: rangeOf(ctx, def.name.loc),
+                code: 'duplicate-type'
+            })
+        } else {
+            seen.add(name)
+        }
+    }
 }
 
 function innerTypeName(type: TypeNode): string {

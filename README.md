@@ -33,7 +33,7 @@ subgraph repositories.
 | `oleshkoGraphql.scan.workspaceGlobs`   | `["**/*.{graphql,gql}"]`            | Workspace globs to index.                                                 |
 | `oleshkoGraphql.scan.nodeModulesGlobs` | shared-lib defaults                 | `node_modules` globs to index.                                            |
 | `oleshkoGraphql.scan.excludeGlobs`     | `dist`, `build`, `.git`, `coverage` | Exclusions.                                                               |
-| `oleshkoGraphql.indexer.debounceMs`    | `250`                               | Re-index debounce.                                                        |
+| `oleshkoGraphql.indexer.debounceMs`    | `20`                                | Re-index debounce.                                                        |
 | `oleshkoGraphql.logLevel`              | `info`                              | Output channel log level.                                                 |
 | `oleshkoGraphql.telemetry.enabled`     | `true`                              | Anonymous usage telemetry. Respects the global VS Code telemetry setting. |
 

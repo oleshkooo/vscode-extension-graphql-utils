@@ -6,7 +6,9 @@ import { LANGUAGE_ID } from './constants'
 import { pickDiagnosticsService } from './diagnostics'
 import { DiagnosticsService } from './diagnostics/base-diagnostics.service'
 import { DIAGNOSTIC_RULE_TOKEN, DiagnosticRule } from './diagnostics/rules/base-diagnostic-rule'
+import { CrossFileDuplicateTypesRule } from './diagnostics/rules/cross-file-duplicate-types.rule'
 import { MissingRequiredArgsRule } from './diagnostics/rules/missing-required-args.rule'
+import { SchemaValidationRule } from './diagnostics/rules/schema-validation.rule'
 import { UnusedTypesRule } from './diagnostics/rules/unused-types.rule'
 import { pickFileScanner } from './file-scanner'
 import { FileScanner } from './file-scanner/base-file-scanner'
@@ -70,6 +72,8 @@ function registerInfrastructure(config: ConfigService): void {
 }
 
 function registerDiagnosticRules(): void {
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: SchemaValidationRule })
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: CrossFileDuplicateTypesRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: MissingRequiredArgsRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnusedTypesRule })
 }

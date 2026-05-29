@@ -45,6 +45,12 @@ export interface DirectiveUsageEntry {
     argsPresent: string[]
 }
 
+export interface ValidationIssue {
+    message: string
+    range: Range
+    code: string
+}
+
 export interface FileSymbols {
     uri: string
     typeDefinitions: TypeDefinitionEntry[]
@@ -52,6 +58,7 @@ export interface FileSymbols {
     typeReferences: TypeReferenceEntry[]
     fieldReferences: FieldReferenceEntry[]
     directiveUsages: DirectiveUsageEntry[]
+    validationIssues: ValidationIssue[]
 }
 
 export function fieldKey(parentTypeName: string, fieldName: string): string {

@@ -77,6 +77,10 @@ export class SymbolIndex {
         }
     }
 
+    *iterateFiles(): IterableIterator<FileSymbols> {
+        for (const symbols of this.fileSymbols.values()) yield symbols
+    }
+
     typeDefinitionsByKind(kind: TypeDefinitionEntry['kind']): TypeDefinitionEntry[] {
         const out: TypeDefinitionEntry[] = []
         for (const list of this.typeDefinitions.values()) {
