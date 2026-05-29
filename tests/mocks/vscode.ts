@@ -139,6 +139,25 @@ export interface Disposable {
     dispose(): void
 }
 
+export class MarkdownString {
+    value = ''
+    appendMarkdown(text: string): this {
+        this.value += text
+        return this
+    }
+    appendCodeblock(code: string, language?: string): this {
+        this.value += `\n\`\`\`${language ?? ''}\n${code}\n\`\`\`\n`
+        return this
+    }
+}
+
+export class Hover {
+    public readonly contents: MarkdownString[]
+    constructor(contents: MarkdownString | MarkdownString[]) {
+        this.contents = Array.isArray(contents) ? contents : [contents]
+    }
+}
+
 export enum CodeActionKind {
     QuickFix = 'quickfix'
 }

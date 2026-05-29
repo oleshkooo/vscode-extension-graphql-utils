@@ -12,6 +12,7 @@ import { SymbolIndex } from '../indexer/symbol-index'
 import type { TypeDefinitionEntry } from '../indexer/types'
 import { BuiltinScalarsRegistry } from '../scalars/builtin-scalars.registry'
 import { DocumentSymbolResolver } from './helpers/document-symbol-resolver'
+import { FieldParentResolver } from './helpers/field-parent-resolver'
 
 @singleton()
 export class GraphqlHoverProvider implements VscHoverProvider {
@@ -19,7 +20,8 @@ export class GraphqlHoverProvider implements VscHoverProvider {
         private readonly resolver: DocumentSymbolResolver,
         private readonly index: SymbolIndex,
         private readonly federation: FederationRegistry,
-        private readonly builtins: BuiltinScalarsRegistry
+        private readonly builtins: BuiltinScalarsRegistry,
+        private readonly parentResolver: FieldParentResolver
     ) {}
 
     provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
@@ -29,7 +31,9 @@ export class GraphqlHoverProvider implements VscHoverProvider {
         if (symbol.kind === 'type-reference' || symbol.kind === 'type-definition') {
             return this.hoverForType(symbol.entry.name)
         }
-        return this.hoverForField(symbol.entry.parentTypeName, symbol.entry.name)
+        const actualParent = this.parentResolver.resolve(symbol.entry.parentTypeName)
+        if (!actualParent) return undefined
+        return this.hoverForField(actualParent, symbol.entry.name)
     }
 
     private hoverForType(name: string): Hover | undefined {

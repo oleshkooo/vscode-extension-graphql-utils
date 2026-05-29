@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-    CodeActionKind,
-    Position,
-    Uri,
-    type CodeActionContext,
-    type Diagnostic,
-    type Range,
-    type TextDocument
-} from 'vscode'
+import { CodeActionKind, Position, type CodeActionContext, type Diagnostic, type Range } from 'vscode'
 import type { ConfigService } from '../../src/config/config.service'
 import { UnknownEnumValueRule } from '../../src/diagnostics/rules/unknown-enum-value.rule'
 import { UnknownReferencesRule } from '../../src/diagnostics/rules/unknown-references.rule'
@@ -15,21 +7,7 @@ import { FederationRegistry } from '../../src/federation/federation-registry'
 import { GraphqlCodeActionProvider } from '../../src/providers/code-action.provider'
 import { BuiltinScalarsRegistry } from '../../src/scalars/builtin-scalars.registry'
 import { makeWorkspace } from '../helpers/build-symbols'
-
-function fakeDocument(uri: string, source: string): TextDocument {
-    const lineOffsets: number[] = [0]
-    for (let i = 0; i < source.length; i++) {
-        if (source.charCodeAt(i) === 10) lineOffsets.push(i + 1)
-    }
-    const offsetAt = (pos: Position): number => (lineOffsets[pos.line] ?? 0) + pos.character
-    return {
-        uri: Uri.parse(uri),
-        getText(range?: Range): string {
-            if (!range) return source
-            return source.slice(offsetAt(range.start), offsetAt(range.end))
-        }
-    } as unknown as TextDocument
-}
+import { fakeDocument } from '../helpers/fake-document'
 
 function fakeContext(diagnostics: Diagnostic[]): CodeActionContext {
     return { diagnostics, only: undefined, triggerKind: 1 } as unknown as CodeActionContext
