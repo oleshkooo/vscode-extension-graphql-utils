@@ -139,6 +139,39 @@ export interface Disposable {
     dispose(): void
 }
 
+export enum CodeActionKind {
+    QuickFix = 'quickfix'
+}
+
+export class CodeAction {
+    edit?: WorkspaceEdit
+    diagnostics?: Diagnostic[]
+    isPreferred?: boolean
+    constructor(
+        public title: string,
+        public kind: CodeActionKind
+    ) {}
+}
+
+interface WorkspaceEditOp {
+    uri: Uri
+    range: Range
+    newText: string
+}
+
+export class WorkspaceEdit {
+    private readonly ops: WorkspaceEditOp[] = []
+    replace(uri: Uri, range: Range, newText: string): void {
+        this.ops.push({ uri, range, newText })
+    }
+    entries(): [Uri, WorkspaceEditOp[]][] {
+        return [[this.ops[0]?.uri as Uri, [...this.ops]]]
+    }
+    operations(): readonly WorkspaceEditOp[] {
+        return this.ops
+    }
+}
+
 export class EventEmitter<T> {
     private listeners: Array<(e: T) => void> = []
     readonly event = (listener: (e: T) => void): Disposable => {

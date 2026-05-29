@@ -22,12 +22,11 @@ import { pickLogger } from './logger'
 import { Logger } from './logger/base-logger'
 import { pickGraphqlParser } from './parser'
 import { GraphqlParser } from './parser/base-parser'
-import {
-    GraphqlCompletionProvider,
-    GraphqlDefinitionProvider,
-    GraphqlHoverProvider,
-    GraphqlReferencesProvider
-} from './providers'
+import { GraphqlCodeActionProvider } from './providers/code-action.provider'
+import { GraphqlCompletionProvider } from './providers/completion.provider'
+import { GraphqlDefinitionProvider } from './providers/definition.provider'
+import { GraphqlHoverProvider } from './providers/hover.provider'
+import { GraphqlReferencesProvider } from './providers/references.provider'
 import { pickTelemetryService } from './telemetry'
 import { TelemetryService } from './telemetry/base-telemetry.service'
 import { pickFileWatcher } from './watcher'
@@ -91,5 +90,12 @@ function registerLanguageProviders(lifecycle: Lifecycle): void {
     lifecycle.register(languages.registerHoverProvider(selector, container.resolve(GraphqlHoverProvider)))
     lifecycle.register(
         languages.registerCompletionItemProvider(selector, container.resolve(GraphqlCompletionProvider), '@', ':', '=')
+    )
+    lifecycle.register(
+        languages.registerCodeActionsProvider(
+            selector,
+            container.resolve(GraphqlCodeActionProvider),
+            GraphqlCodeActionProvider.metadata
+        )
     )
 }
