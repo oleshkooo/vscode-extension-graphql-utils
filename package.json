@@ -2,7 +2,7 @@
     "name": "graphql-utils",
     "displayName": "Oleshko's GraphQL Utils",
     "description": "Zero-config GraphQL & Apollo Federation language support: definitions, references, hover, autocomplete, syntax highlighting",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "publisher": "oleshko",
     "license": "MIT",
     "private": false,
