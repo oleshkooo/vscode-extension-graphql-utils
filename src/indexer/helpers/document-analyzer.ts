@@ -222,7 +222,8 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
         uri: ctx.uri,
         range: rangeOf(ctx, field.loc),
         nameRange: rangeOf(ctx, field.name.loc),
-        description: descriptionOf(field)
+        description: descriptionOf(field),
+        directiveNames: directiveNamesOf(field.directives)
     })
     addNestedTypeReferences(ctx, field.type)
     ctx.typeEdges.push({ from: parent, to: typeName })
@@ -250,7 +251,8 @@ function analyzeInputField(ctx: AnalyzerContext, parent: string, field: InputVal
         uri: ctx.uri,
         range: rangeOf(ctx, field.loc),
         nameRange: rangeOf(ctx, field.name.loc),
-        description: descriptionOf(field)
+        description: descriptionOf(field),
+        directiveNames: directiveNamesOf(field.directives)
     })
     addNestedTypeReferences(ctx, field.type)
     ctx.typeEdges.push({ from: parent, to: typeName })
@@ -274,7 +276,8 @@ function analyzeEnumValue(ctx: AnalyzerContext, parent: string, value: EnumValue
         uri: ctx.uri,
         range: rangeOf(ctx, value.loc),
         nameRange: rangeOf(ctx, value.name.loc),
-        description: descriptionOf(value)
+        description: descriptionOf(value),
+        directiveNames: directiveNamesOf(value.directives)
     })
     if (value.directives) addDirectiveEdges(ctx, parent, value.directives)
 }
@@ -410,6 +413,11 @@ function addTypeReference(ctx: AnalyzerContext, type: NamedTypeNode): void {
 
 function addDirectiveEdges(ctx: AnalyzerContext, from: string, directives: readonly DirectiveNode[]): void {
     for (const d of directives) ctx.typeEdges.push({ from, to: directiveArgsParent(d.name.value) })
+}
+
+function directiveNamesOf(directives: readonly DirectiveNode[] | undefined): string[] | undefined {
+    if (!directives || directives.length === 0) return undefined
+    return directives.map(d => d.name.value)
 }
 
 function detectDuplicates<T extends { name: { value: string; loc?: Location } }>(

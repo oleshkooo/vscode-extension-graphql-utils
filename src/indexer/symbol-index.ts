@@ -1,4 +1,5 @@
 import { singleton } from 'tsyringe'
+import { EventEmitter, type Event } from 'vscode'
 import {
     fieldKey,
     type FieldDefinitionEntry,
@@ -8,6 +9,8 @@ import {
     type TypeReferenceEntry
 } from './types'
 
+export type SymbolIndexEvent = { uri: string } | { uri: '*' }
+
 @singleton()
 export class SymbolIndex {
     private readonly typeDefinitions = new Map<string, TypeDefinitionEntry[]>()
@@ -15,8 +18,11 @@ export class SymbolIndex {
     private readonly fieldDefinitions = new Map<string, FieldDefinitionEntry[]>()
     private readonly fieldReferences = new Map<string, FieldReferenceEntry[]>()
     private readonly fileSymbols = new Map<string, FileSymbols>()
+    private readonly emitter = new EventEmitter<SymbolIndexEvent>()
     private versionCounter = 0
     private reachabilityCache: { version: number; rootsKey: string; reachable: Set<string> } | undefined
+
+    readonly onDidUpdate: Event<SymbolIndexEvent> = this.emitter.event
 
     upsert(symbols: FileSymbols): void {
         this.remove(symbols.uri)
@@ -28,6 +34,7 @@ export class SymbolIndex {
         for (const ref of symbols.fieldReferences)
             push(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), ref)
         this.versionCounter++
+        this.emitter.fire({ uri: symbols.uri })
     }
 
     remove(uri: string): void {
@@ -43,6 +50,7 @@ export class SymbolIndex {
             drop(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), e => e.uri === uri)
         }
         this.versionCounter++
+        this.emitter.fire({ uri })
     }
 
     clear(): void {
@@ -52,6 +60,7 @@ export class SymbolIndex {
         this.fieldReferences.clear()
         this.fileSymbols.clear()
         this.versionCounter++
+        this.emitter.fire({ uri: '*' })
     }
 
     get version(): number {

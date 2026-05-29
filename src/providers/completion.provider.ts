@@ -47,6 +47,8 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
                 return new CompletionList(this.directiveLocationItems(), true)
             case 'type-position':
                 return new CompletionList(this.typeItems(currentUri, ctx.enclosingType), false)
+            case 'default-value':
+                return new CompletionList(this.valueItemsForType(ctx.typeName), true)
             case 'keywords':
                 return new CompletionList(this.keywordItems(), true)
             case 'none':
@@ -127,17 +129,18 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
     private directiveArgValueItems(directiveName: string, argName: string): CompletionItem[] {
         const argType = this.resolveDirectiveArgType(directiveName, argName)
         if (!argType) return []
+        return this.valueItemsForType(argType)
+    }
 
-        if (argType === 'Boolean') return booleanLiteralItems()
-
-        const typeDefs = this.index.findTypeDefinitions(argType)
+    private valueItemsForType(typeName: string): CompletionItem[] {
+        if (typeName === 'Boolean') return booleanLiteralItems()
+        const typeDefs = this.index.findTypeDefinitions(typeName)
         const isEnum = typeDefs.some(d => d.kind === 'enum')
         if (!isEnum) return []
-
-        const enumValues = this.index.findFieldDefinitionsByParent(argType)
+        const enumValues = this.index.findFieldDefinitionsByParent(typeName)
         return enumValues.map(value => {
             const item = newItem(value.name, CompletionItemKind.EnumMember)
-            item.detail = argType
+            item.detail = typeName
             if (value.description) item.documentation = new MarkdownString(value.description)
             return item
         })

@@ -3,12 +3,14 @@ import { languages, type ExtensionContext } from 'vscode'
 import { ConfigReloader } from './config/config-reloader'
 import { ConfigService } from './config/config.service'
 import { LANGUAGE_ID } from './constants'
+import { DeprecatedDecorationProvider } from './decorations/deprecated-decoration-provider'
 import { pickDiagnosticsService } from './diagnostics'
 import { DiagnosticsService } from './diagnostics/base-diagnostics.service'
 import { DIAGNOSTIC_RULE_TOKEN, DiagnosticRule } from './diagnostics/rules/base-diagnostic-rule'
 import { CrossFileDuplicateTypesRule } from './diagnostics/rules/cross-file-duplicate-types.rule'
 import { MissingRequiredArgsRule } from './diagnostics/rules/missing-required-args.rule'
 import { SchemaValidationRule } from './diagnostics/rules/schema-validation.rule'
+import { UnknownEnumValueRule } from './diagnostics/rules/unknown-enum-value.rule'
 import { UnusedTypesRule } from './diagnostics/rules/unused-types.rule'
 import { pickFileScanner } from './file-scanner'
 import { FileScanner } from './file-scanner/base-file-scanner'
@@ -48,6 +50,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
     const indexer = container.resolve(Indexer as InjectionToken<Indexer>)
     await indexer.start()
 
+    container.resolve(DeprecatedDecorationProvider).start()
     container.resolve(ConfigReloader).start()
 
     logger.info("Oleshko's GraphQL Utils ready")
@@ -75,6 +78,7 @@ function registerDiagnosticRules(): void {
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: SchemaValidationRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: CrossFileDuplicateTypesRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: MissingRequiredArgsRule })
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnknownEnumValueRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnusedTypesRule })
 }
 
@@ -84,6 +88,6 @@ function registerLanguageProviders(lifecycle: Lifecycle): void {
     lifecycle.register(languages.registerReferenceProvider(selector, container.resolve(GraphqlReferencesProvider)))
     lifecycle.register(languages.registerHoverProvider(selector, container.resolve(GraphqlHoverProvider)))
     lifecycle.register(
-        languages.registerCompletionItemProvider(selector, container.resolve(GraphqlCompletionProvider), '@', ':')
+        languages.registerCompletionItemProvider(selector, container.resolve(GraphqlCompletionProvider), '@', ':', '=')
     )
 }

@@ -73,7 +73,7 @@
         },
         "enum-value": {
             "name": "variable.parameter.enum.graphql",
-            "match": "\\b[_A-Z][_0-9A-Z]*\\b"
+            "match": "\\b[_A-Za-z][_0-9A-Za-z]*\\b"
         },
         "variables": {
             "patterns": [

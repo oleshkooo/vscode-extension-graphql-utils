@@ -22,6 +22,7 @@ export interface FieldDefinitionEntry {
     nameRange: Range
     description?: string
     required?: boolean
+    directiveNames?: string[]
 }
 
 export interface TypeReferenceEntry {

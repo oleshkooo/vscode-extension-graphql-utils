@@ -134,3 +134,25 @@ export const workspace = {
         }
     }
 }
+
+export interface Disposable {
+    dispose(): void
+}
+
+export class EventEmitter<T> {
+    private listeners: Array<(e: T) => void> = []
+    readonly event = (listener: (e: T) => void): Disposable => {
+        this.listeners.push(listener)
+        return {
+            dispose: () => {
+                this.listeners = this.listeners.filter(l => l !== listener)
+            }
+        }
+    }
+    fire(data: T): void {
+        for (const listener of this.listeners) listener(data)
+    }
+    dispose(): void {
+        this.listeners = []
+    }
+}

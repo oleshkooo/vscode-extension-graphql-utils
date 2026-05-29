@@ -7,6 +7,7 @@ export type CompletionContext =
     | { kind: 'directive-arg-value'; directiveName: string; argName: string }
     | { kind: 'directive-location' }
     | { kind: 'type-position'; enclosingType: string | undefined }
+    | { kind: 'default-value'; typeName: string }
     | { kind: 'keywords' }
     | { kind: 'none' }
 
@@ -17,6 +18,11 @@ export function detectCompletionContext(document: TextDocument, position: Positi
     const stripped = stripStringsAndComments(fullPrefix)
     const lineStartIdx = stripped.lastIndexOf('\n') + 1
     const currentLine = stripped.slice(lineStartIdx)
+
+    const defaultValueTypeName = detectDefaultValueType(currentLine)
+    if (defaultValueTypeName !== undefined) {
+        return { kind: 'default-value', typeName: defaultValueTypeName }
+    }
 
     const parenScope = detectParenScope(stripped)
     if (parenScope) {
@@ -155,6 +161,11 @@ function isInsideBlock(stripped: string): boolean {
         else if (c === '}') depth--
     }
     return depth > 0
+}
+
+function detectDefaultValueType(currentLine: string): string | undefined {
+    const match = /:\s*\[?\s*([_A-Za-z][_0-9A-Za-z]*)[\s!\]]*=\s*[_A-Za-z0-9]*$/.exec(currentLine)
+    return match?.[1]
 }
 
 function isDirectiveLocationContext(stripped: string, currentLine: string): boolean {
