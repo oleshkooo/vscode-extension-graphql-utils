@@ -15,6 +15,8 @@ export class SymbolIndex {
     private readonly fieldDefinitions = new Map<string, FieldDefinitionEntry[]>()
     private readonly fieldReferences = new Map<string, FieldReferenceEntry[]>()
     private readonly fileSymbols = new Map<string, FileSymbols>()
+    private versionCounter = 0
+    private reachabilityCache: { version: number; rootsKey: string; reachable: Set<string> } | undefined
 
     upsert(symbols: FileSymbols): void {
         this.remove(symbols.uri)
@@ -25,6 +27,7 @@ export class SymbolIndex {
             push(this.fieldDefinitions, fieldKey(def.parentTypeName, def.name), def)
         for (const ref of symbols.fieldReferences)
             push(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), ref)
+        this.versionCounter++
     }
 
     remove(uri: string): void {
@@ -39,6 +42,7 @@ export class SymbolIndex {
         for (const ref of existing.fieldReferences) {
             drop(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), e => e.uri === uri)
         }
+        this.versionCounter++
     }
 
     clear(): void {
@@ -47,6 +51,55 @@ export class SymbolIndex {
         this.fieldDefinitions.clear()
         this.fieldReferences.clear()
         this.fileSymbols.clear()
+        this.versionCounter++
+    }
+
+    get version(): number {
+        return this.versionCounter
+    }
+
+    reachableTypeNames(roots: readonly string[]): Set<string> {
+        const rootsKey = [...roots].sort().join('\n')
+        if (this.reachabilityCache?.version === this.versionCounter && this.reachabilityCache.rootsKey === rootsKey) {
+            return this.reachabilityCache.reachable
+        }
+        const outgoing = this.buildOutgoing()
+        const reachable = new Set<string>()
+        const queue: string[] = []
+        for (const root of roots) {
+            if (!reachable.has(root)) {
+                reachable.add(root)
+                queue.push(root)
+            }
+        }
+        while (queue.length > 0) {
+            const name = queue.shift() as string
+            const adj = outgoing.get(name)
+            if (!adj) continue
+            for (const next of adj) {
+                if (!reachable.has(next)) {
+                    reachable.add(next)
+                    queue.push(next)
+                }
+            }
+        }
+        this.reachabilityCache = { version: this.versionCounter, rootsKey, reachable }
+        return reachable
+    }
+
+    private buildOutgoing(): Map<string, Set<string>> {
+        const map = new Map<string, Set<string>>()
+        for (const file of this.fileSymbols.values()) {
+            for (const edge of file.typeEdges) {
+                let set = map.get(edge.from)
+                if (!set) {
+                    set = new Set()
+                    map.set(edge.from, set)
+                }
+                set.add(edge.to)
+            }
+        }
+        return map
     }
 
     findTypeDefinitions(name: string): readonly TypeDefinitionEntry[] {

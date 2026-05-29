@@ -50,7 +50,8 @@ export class DocumentSymbolResolver {
                 typeReferences: directiveRefs,
                 fieldReferences: [],
                 directiveUsages: [],
-                validationIssues: []
+                validationIssues: [],
+                typeEdges: []
             }
         }
         const symbols = analyzeDocument(uri, source, ast.definitions)
@@ -95,6 +96,7 @@ function empty(uri: string): FileSymbols {
         typeReferences: [],
         fieldReferences: [],
         directiveUsages: [],
-        validationIssues: []
+        validationIssues: [],
+        typeEdges: []
     }
 }

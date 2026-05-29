@@ -51,6 +51,11 @@ export interface ValidationIssue {
     code: string
 }
 
+export interface TypeEdge {
+    from: string
+    to: string
+}
+
 export interface FileSymbols {
     uri: string
     typeDefinitions: TypeDefinitionEntry[]
@@ -59,6 +64,7 @@ export interface FileSymbols {
     fieldReferences: FieldReferenceEntry[]
     directiveUsages: DirectiveUsageEntry[]
     validationIssues: ValidationIssue[]
+    typeEdges: TypeEdge[]
 }
 
 export function fieldKey(parentTypeName: string, fieldName: string): string {

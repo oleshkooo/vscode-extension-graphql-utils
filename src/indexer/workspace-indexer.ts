@@ -64,7 +64,8 @@ export class WorkspaceIndexer extends Indexer {
                     typeReferences: directiveRefs,
                     fieldReferences: [],
                     directiveUsages: [],
-                    validationIssues: []
+                    validationIssues: [],
+                    typeEdges: []
                 }
             } else {
                 symbols = analyzeDocument(uri.toString(), source, document.definitions)

@@ -32,6 +32,7 @@ import type {
     FieldReferenceEntry,
     FileSymbols,
     TypeDefinitionEntry,
+    TypeEdge,
     TypeKind,
     TypeReferenceEntry,
     ValidationIssue
@@ -47,6 +48,7 @@ interface AnalyzerContext {
     fieldReferences: FieldReferenceEntry[]
     directiveUsages: DirectiveUsageEntry[]
     validationIssues: ValidationIssue[]
+    typeEdges: TypeEdge[]
 }
 
 const TYPE_DEF_KINDS = new Map<string, { kind: TypeKind; isExtension: boolean }>([
@@ -73,7 +75,8 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         typeReferences: [],
         fieldReferences: [],
         directiveUsages: [],
-        validationIssues: []
+        validationIssues: [],
+        typeEdges: []
     }
 
     for (const def of definitions) analyzeDefinition(ctx, def)
@@ -103,7 +106,8 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         typeReferences: ctx.typeReferences,
         fieldReferences: ctx.fieldReferences,
         directiveUsages: ctx.directiveUsages,
-        validationIssues: ctx.validationIssues
+        validationIssues: ctx.validationIssues,
+        typeEdges: ctx.typeEdges
     }
 }
 
@@ -166,10 +170,16 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
     ctx.typeDefinitions.push(entry)
 
     if ('interfaces' in node && node.interfaces) {
-        for (const iface of node.interfaces) addTypeReference(ctx, iface)
+        for (const iface of node.interfaces) {
+            addTypeReference(ctx, iface)
+            ctx.typeEdges.push({ from: entry.name, to: iface.name.value })
+        }
     }
     if ('types' in node && node.types) {
-        for (const named of node.types) addTypeReference(ctx, named)
+        for (const named of node.types) {
+            addTypeReference(ctx, named)
+            ctx.typeEdges.push({ from: entry.name, to: named.name.value })
+        }
     }
     if ('values' in node && node.values) {
         detectDuplicates(
@@ -198,6 +208,7 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
         }
     }
     if ('directives' in node && node.directives) {
+        addDirectiveEdges(ctx, entry.name, node.directives)
         emitFieldSetRefs(ctx, node.directives, { key: entry.name })
     }
 }
@@ -214,6 +225,7 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
         description: descriptionOf(field)
     })
     addNestedTypeReferences(ctx, field.type)
+    ctx.typeEdges.push({ from: parent, to: typeName })
     if (field.arguments) {
         detectDuplicates(
             ctx,
@@ -221,9 +233,10 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
             name => `Duplicate argument '${name}' on field '${parent}.${field.name.value}'`,
             'duplicate-argument'
         )
-        for (const arg of field.arguments) analyzeArgument(ctx, arg)
+        for (const arg of field.arguments) analyzeArgument(ctx, parent, arg)
     }
     if (field.directives) {
+        addDirectiveEdges(ctx, parent, field.directives)
         emitFieldSetRefs(ctx, field.directives, { requires: parent, provides: typeName })
     }
 }
@@ -240,12 +253,16 @@ function analyzeInputField(ctx: AnalyzerContext, parent: string, field: InputVal
         description: descriptionOf(field)
     })
     addNestedTypeReferences(ctx, field.type)
+    ctx.typeEdges.push({ from: parent, to: typeName })
+    if (field.directives) addDirectiveEdges(ctx, parent, field.directives)
     if (field.defaultValue) collectEnumValueRefs(ctx, typeName, field.defaultValue)
 }
 
-function analyzeArgument(ctx: AnalyzerContext, arg: InputValueDefinitionNode): void {
+function analyzeArgument(ctx: AnalyzerContext, parent: string, arg: InputValueDefinitionNode): void {
     const argTypeName = innerTypeName(arg.type)
     addNestedTypeReferences(ctx, arg.type)
+    ctx.typeEdges.push({ from: parent, to: argTypeName })
+    if (arg.directives) addDirectiveEdges(ctx, parent, arg.directives)
     if (arg.defaultValue) collectEnumValueRefs(ctx, argTypeName, arg.defaultValue)
 }
 
@@ -259,6 +276,7 @@ function analyzeEnumValue(ctx: AnalyzerContext, parent: string, value: EnumValue
         nameRange: rangeOf(ctx, value.name.loc),
         description: descriptionOf(value)
     })
+    if (value.directives) addDirectiveEdges(ctx, parent, value.directives)
 }
 
 function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode): void {
@@ -281,11 +299,13 @@ function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode
         )
         const parent = directiveArgsParent(directiveName)
         for (const arg of node.arguments) {
+            const argTypeName = innerTypeName(arg.type)
             addNestedTypeReferences(ctx, arg.type)
+            ctx.typeEdges.push({ from: parent, to: argTypeName })
             ctx.fieldDefinitions.push({
                 parentTypeName: parent,
                 name: arg.name.value,
-                typeName: innerTypeName(arg.type),
+                typeName: argTypeName,
                 uri: ctx.uri,
                 range: rangeOf(ctx, arg.loc),
                 nameRange: rangeOf(ctx, arg.name.loc),
@@ -386,6 +406,10 @@ function addTypeReference(ctx: AnalyzerContext, type: NamedTypeNode): void {
         uri: ctx.uri,
         range: rangeOf(ctx, type.name.loc)
     })
+}
+
+function addDirectiveEdges(ctx: AnalyzerContext, from: string, directives: readonly DirectiveNode[]): void {
+    for (const d of directives) ctx.typeEdges.push({ from, to: directiveArgsParent(d.name.value) })
 }
 
 function detectDuplicates<T extends { name: { value: string; loc?: Location } }>(
