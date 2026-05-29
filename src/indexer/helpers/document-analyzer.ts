@@ -1,6 +1,7 @@
 import type {
     DefinitionNode,
     DirectiveDefinitionNode,
+    DocumentNode,
     EnumTypeDefinitionNode,
     EnumTypeExtensionNode,
     EnumValueDefinitionNode,
@@ -21,7 +22,7 @@ import type {
     UnionTypeExtensionNode,
     ValueNode
 } from 'graphql'
-import { Kind } from 'graphql'
+import { Kind, visit } from 'graphql'
 import type {
     FieldDefinitionEntry,
     FieldReferenceEntry,
@@ -68,6 +69,16 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
 
     for (const def of definitions) analyzeDefinition(ctx, def)
 
+    const document: DocumentNode = { kind: Kind.DOCUMENT, definitions: definitions as DefinitionNode[] }
+    visit(document, {
+        Directive(node) {
+            if (!node.arguments) return
+            for (const arg of node.arguments) {
+                collectEnumValueRefs(ctx, directiveArgPlaceholder(node.name.value, arg.name.value), arg.value)
+            }
+        }
+    })
+
     return {
         uri,
         typeDefinitions: ctx.typeDefinitions,
@@ -75,6 +86,20 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         typeReferences: ctx.typeReferences,
         fieldReferences: ctx.fieldReferences
     }
+}
+
+const DIRECTIVE_ARG_PLACEHOLDER_PREFIX = '@@arg:'
+
+export function directiveArgPlaceholder(directiveName: string, argName: string): string {
+    return `${DIRECTIVE_ARG_PLACEHOLDER_PREFIX}${directiveName}/${argName}`
+}
+
+export function parseDirectiveArgPlaceholder(parent: string): { directiveName: string; argName: string } | undefined {
+    if (!parent.startsWith(DIRECTIVE_ARG_PLACEHOLDER_PREFIX)) return undefined
+    const body = parent.slice(DIRECTIVE_ARG_PLACEHOLDER_PREFIX.length)
+    const slash = body.indexOf('/')
+    if (slash === -1) return undefined
+    return { directiveName: body.slice(0, slash), argName: body.slice(slash + 1) }
 }
 
 function analyzeDefinition(ctx: AnalyzerContext, def: DefinitionNode): void {

@@ -5,6 +5,7 @@ export type CompletionContext =
     | { kind: 'directive-name' }
     | { kind: 'directive-arg-name'; directiveName: string }
     | { kind: 'directive-arg-value'; directiveName: string; argName: string }
+    | { kind: 'directive-location' }
     | { kind: 'type-position' }
     | { kind: 'keywords' }
     | { kind: 'none' }
@@ -35,6 +36,8 @@ export function detectCompletionContext(document: TextDocument, position: Positi
     }
 
     if (/@[_0-9A-Za-z]*$/.test(currentLine)) return { kind: 'directive-name' }
+
+    if (isDirectiveLocationContext(stripped, currentLine)) return { kind: 'directive-location' }
 
     if (/\bextend\s+(type|input|enum|interface|union|scalar)\s+[_A-Za-z0-9]*$/.test(currentLine)) {
         return { kind: 'type-position' }
@@ -73,60 +76,39 @@ interface ParenScope {
 }
 
 function detectParenScope(stripped: string): ParenScope | undefined {
-    let parenDepth = 0
-    let bracketDepth = 0
-    let braceDepth = 0
-    let sawColon = false
-    let colonPos = -1
-    let argTerritoryClosed = false
-
-    for (let i = stripped.length - 1; i >= 0; i--) {
+    const parenStack: number[] = []
+    for (let i = 0; i < stripped.length; i++) {
         const ch = stripped[i] as string
-        if (ch === ')') {
-            parenDepth++
-            continue
-        }
-        if (ch === '(') {
-            if (parenDepth === 0) {
-                const before = stripped.slice(0, i)
-                const m = /@([_A-Za-z][_0-9A-Za-z]*)\s*$/.exec(before)
-                const isUsage = m && !/\bdirective\s*$/.test(before.slice(0, before.length - m[0].length))
-                const directiveName = isUsage ? (m![1] as string) : undefined
-                const argName = sawColon && colonPos >= 0 ? identifierBefore(stripped, colonPos) : undefined
-                return { atValuePosition: sawColon, directiveName, argName }
-            }
-            parenDepth--
-            continue
-        }
-        if (ch === ']') {
-            bracketDepth++
-            continue
-        }
-        if (ch === '[') {
-            bracketDepth--
-            continue
-        }
-        if (ch === '}') {
-            braceDepth++
-            continue
-        }
-        if (ch === '{') {
-            if (braceDepth === 0) return undefined
-            braceDepth--
-            continue
-        }
-        if (parenDepth === 0 && bracketDepth === 0 && braceDepth === 0 && !argTerritoryClosed) {
+        if (ch === '(') parenStack.push(i)
+        else if (ch === ')') parenStack.pop()
+    }
+    if (parenStack.length === 0) return undefined
+
+    const parenPos = parenStack[parenStack.length - 1] as number
+    const before = stripped.slice(0, parenPos)
+    const m = /@([_A-Za-z][_0-9A-Za-z]*)\s*$/.exec(before)
+    const isUsage = !!m && !/\bdirective\s*$/.test(before.slice(0, before.length - m[0].length))
+    const directiveName = isUsage ? (m![1] as string) : undefined
+
+    let depth = 0
+    let sawColon = false
+    let argName: string | undefined
+    for (let i = parenPos + 1; i < stripped.length; i++) {
+        const ch = stripped[i] as string
+        if (ch === '(' || ch === '[' || ch === '{') depth++
+        else if (ch === ')' || ch === ']' || ch === '}') depth--
+        else if (depth === 0) {
             if (ch === ',') {
-                argTerritoryClosed = true
-                continue
-            }
-            if (ch === ':') {
+                sawColon = false
+                argName = undefined
+            } else if (ch === ':') {
                 sawColon = true
-                colonPos = i
+                argName = identifierBefore(stripped, i)
             }
         }
     }
-    return undefined
+
+    return { atValuePosition: sawColon, directiveName, argName }
 }
 
 function identifierBefore(s: string, idx: number): string | undefined {
@@ -147,6 +129,12 @@ function isInsideBlock(stripped: string): boolean {
         else if (c === '}') depth--
     }
     return depth > 0
+}
+
+function isDirectiveLocationContext(stripped: string, currentLine: string): boolean {
+    if (!/\b(?:on\s+|\|\s*)(?:[_A-Z][_0-9A-Z]*\s*\|\s*)*[_A-Z]*$/.test(currentLine)) return false
+    const tail = stripped.slice(Math.max(0, stripped.length - 4000))
+    return /\bdirective\s+@[_A-Za-z][_0-9A-Za-z]*/.test(tail)
 }
 
 function hasColonOnCurrentLineOutsideParens(currentLine: string): boolean {

@@ -9,6 +9,7 @@ import {
     type ProviderResult,
     type TextDocument
 } from 'vscode'
+import { DIRECTIVE_LOCATIONS } from '../constants'
 import { FederationRegistry } from '../federation/federation-registry'
 import type { FederationDirectiveSpec } from '../federation/directives'
 import { directiveArgsParent } from '../indexer/helpers/document-analyzer'
@@ -42,6 +43,8 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
                 return new CompletionList(this.directiveArgItems(ctx.directiveName), true)
             case 'directive-arg-value':
                 return new CompletionList(this.directiveArgValueItems(ctx.directiveName, ctx.argName), true)
+            case 'directive-location':
+                return new CompletionList(this.directiveLocationItems(), true)
             case 'type-position':
                 return new CompletionList(this.typeItems(currentUri), false)
             case 'keywords':
@@ -82,6 +85,14 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         return this.builtins.keywordsList().map(kw => {
             const item = new CompletionItem(kw, CompletionItemKind.Keyword)
             item.detail = 'GraphQL keyword'
+            return item
+        })
+    }
+
+    private directiveLocationItems(): CompletionItem[] {
+        return DIRECTIVE_LOCATIONS.map(loc => {
+            const item = new CompletionItem(loc, CompletionItemKind.EnumMember)
+            item.detail = 'directive location'
             return item
         })
     }

@@ -8,8 +8,8 @@ import {
     type TextDocument
 } from 'vscode'
 import { FederationRegistry } from '../federation/federation-registry'
+import { directiveArgsParent, parseDirectiveArgPlaceholder } from '../indexer/helpers/document-analyzer'
 import { SymbolIndex } from '../indexer/symbol-index'
-import { BuiltinScalarsRegistry } from '../scalars/builtin-scalars.registry'
 import { DocumentSymbolResolver } from './helpers/document-symbol-resolver'
 
 @singleton()
@@ -17,8 +17,7 @@ export class GraphqlDefinitionProvider implements VscDefinitionProvider {
     constructor(
         private readonly resolver: DocumentSymbolResolver,
         private readonly index: SymbolIndex,
-        private readonly federation: FederationRegistry,
-        private readonly builtins: BuiltinScalarsRegistry
+        private readonly federation: FederationRegistry
     ) {}
 
     provideDefinition(document: TextDocument, position: Position): ProviderResult<Location[]> {
@@ -27,17 +26,11 @@ export class GraphqlDefinitionProvider implements VscDefinitionProvider {
 
         switch (symbol.kind) {
             case 'type-reference':
-            case 'type-definition': {
-                const defs = this.locationsForType(symbol.entry.name)
-                if (defs.length > 0) return defs
-                if (this.hasNoSourceLocation(symbol.entry.name)) {
-                    return this.locationsForTypeReferences(symbol.entry.name)
-                }
-                return []
-            }
+            case 'type-definition':
+                return this.locationsForType(symbol.entry.name)
             case 'field-reference':
             case 'field-definition':
-                return this.locationsForField(symbol.entry.parentTypeName, symbol.entry.name)
+                return this.locationsForResolvedField(symbol.entry.parentTypeName, symbol.entry.name)
         }
     }
 
@@ -45,16 +38,24 @@ export class GraphqlDefinitionProvider implements VscDefinitionProvider {
         return this.index.findTypeDefinitions(name).map(toNameLocation)
     }
 
-    private locationsForField(parent: string, name: string): Location[] {
-        return this.index.findFieldDefinitions(parent, name).map(toNameLocation)
+    private locationsForResolvedField(parent: string, name: string): Location[] {
+        const placeholder = parseDirectiveArgPlaceholder(parent)
+        if (!placeholder) {
+            return this.index.findFieldDefinitions(parent, name).map(toNameLocation)
+        }
+        const actualType = this.resolveDirectiveArgType(placeholder.directiveName, placeholder.argName)
+        if (!actualType) return []
+        return this.index.findFieldDefinitions(actualType, name).map(toNameLocation)
     }
 
-    private locationsForTypeReferences(name: string): Location[] {
-        return this.index.findTypeReferences(name).map(toRangeLocation)
-    }
-
-    private hasNoSourceLocation(name: string): boolean {
-        return this.builtins.isBuiltinScalar(name) || this.federation.isBuiltinDirective(name)
+    private resolveDirectiveArgType(directiveName: string, argName: string): string | undefined {
+        const spec = this.federation.getDirective(directiveName)
+        if (spec) {
+            const arg = spec.args.find(a => a.name === argName)
+            if (arg) return stripTypeWrappers(arg.type)
+        }
+        const userArg = this.index.findFieldDefinitions(directiveArgsParent(directiveName), argName)[0]
+        return userArg?.typeName
     }
 }
 
@@ -62,6 +63,6 @@ function toNameLocation(entry: { uri: string; nameRange: import('vscode').Range 
     return new Location(Uri.parse(entry.uri), entry.nameRange)
 }
 
-function toRangeLocation(entry: { uri: string; range: import('vscode').Range }): Location {
-    return new Location(Uri.parse(entry.uri), entry.range)
+function stripTypeWrappers(typeStr: string): string {
+    return typeStr.replace(/[\[\]!]/g, '').trim()
 }
