@@ -1,6 +1,7 @@
 import { singleton } from 'tsyringe'
 import { workspace, type Uri } from 'vscode'
 import { ConfigService } from '../config/config.service'
+import { DiagnosticsService } from '../diagnostics/base-diagnostics.service'
 import { FileScanner } from '../file-scanner/base-file-scanner'
 import { Logger } from '../logger/base-logger'
 import { GraphqlParser } from '../parser/base-parser'
@@ -10,6 +11,7 @@ import { extractDirectiveReferencesViaRegex } from './helpers/directive-extracto
 import { analyzeDocument } from './helpers/document-analyzer'
 import { OffsetTable } from './helpers/positions'
 import { SymbolIndex } from './symbol-index'
+import type { FileSymbols } from './types'
 
 @singleton()
 export class WorkspaceIndexer extends Indexer {
@@ -22,7 +24,8 @@ export class WorkspaceIndexer extends Indexer {
         private readonly parser: GraphqlParser,
         private readonly scanner: FileScanner,
         private readonly watcher: FileWatcher,
-        private readonly index: SymbolIndex
+        private readonly index: SymbolIndex,
+        private readonly diagnostics: DiagnosticsService
     ) {
         super()
     }
@@ -50,20 +53,23 @@ export class WorkspaceIndexer extends Indexer {
             const offsets = new OffsetTable(source)
             const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
             const { document, errors } = this.parser.parse(source, uri.toString())
+            let symbols: FileSymbols
             if (!document) {
                 if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
-                this.index.upsert({
+                symbols = {
                     uri: uri.toString(),
                     typeDefinitions: [],
                     fieldDefinitions: [],
                     typeReferences: directiveRefs,
-                    fieldReferences: []
-                })
-                return
+                    fieldReferences: [],
+                    directiveUsages: []
+                }
+            } else {
+                symbols = analyzeDocument(uri.toString(), source, document.definitions)
+                symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
             }
-            const symbols = analyzeDocument(uri.toString(), source, document.definitions)
-            symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
             this.index.upsert(symbols)
+            this.diagnostics.evaluate(symbols)
         } catch (err) {
             this.logger.warn({ uri: uri.toString(), err }, 'Failed to index file')
         }
@@ -71,6 +77,7 @@ export class WorkspaceIndexer extends Indexer {
 
     drop(uri: Uri): void {
         this.index.remove(uri.toString())
+        this.diagnostics.drop(uri.toString())
     }
 
     async rebuild(): Promise<void> {

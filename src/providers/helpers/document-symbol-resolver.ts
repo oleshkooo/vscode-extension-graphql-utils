@@ -48,7 +48,8 @@ export class DocumentSymbolResolver {
                 typeDefinitions: [],
                 fieldDefinitions: [],
                 typeReferences: directiveRefs,
-                fieldReferences: []
+                fieldReferences: [],
+                directiveUsages: []
             }
         }
         const symbols = analyzeDocument(uri, source, ast.definitions)
@@ -86,5 +87,12 @@ function rangeSize(range: import('vscode').Range): number {
 }
 
 function empty(uri: string): FileSymbols {
-    return { uri, typeDefinitions: [], fieldDefinitions: [], typeReferences: [], fieldReferences: [] }
+    return {
+        uri,
+        typeDefinitions: [],
+        fieldDefinitions: [],
+        typeReferences: [],
+        fieldReferences: [],
+        directiveUsages: []
+    }
 }

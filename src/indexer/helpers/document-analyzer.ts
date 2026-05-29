@@ -27,6 +27,7 @@ import type {
 import { Kind, visit } from 'graphql'
 import { parseFieldSet, type FieldSetField } from './fieldset-parser'
 import type {
+    DirectiveUsageEntry,
     FieldDefinitionEntry,
     FieldReferenceEntry,
     FileSymbols,
@@ -43,6 +44,7 @@ interface AnalyzerContext {
     fieldDefinitions: FieldDefinitionEntry[]
     typeReferences: TypeReferenceEntry[]
     fieldReferences: FieldReferenceEntry[]
+    directiveUsages: DirectiveUsageEntry[]
 }
 
 const TYPE_DEF_KINDS = new Map<string, { kind: TypeKind; isExtension: boolean }>([
@@ -67,7 +69,8 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         typeDefinitions: [],
         fieldDefinitions: [],
         typeReferences: [],
-        fieldReferences: []
+        fieldReferences: [],
+        directiveUsages: []
     }
 
     for (const def of definitions) analyzeDefinition(ctx, def)
@@ -75,6 +78,13 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
     const document: DocumentNode = { kind: Kind.DOCUMENT, definitions: definitions as DefinitionNode[] }
     visit(document, {
         Directive(node) {
+            ctx.directiveUsages.push({
+                name: node.name.value,
+                uri: ctx.uri,
+                range: rangeOf(ctx, node.loc),
+                nameRange: rangeOf(ctx, node.name.loc),
+                argsPresent: node.arguments?.map(a => a.name.value) ?? []
+            })
             if (!node.arguments) return
             for (const arg of node.arguments) {
                 collectEnumValueRefs(ctx, directiveArgPlaceholder(node.name.value, arg.name.value), arg.value)
@@ -87,7 +97,8 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
         typeDefinitions: ctx.typeDefinitions,
         fieldDefinitions: ctx.fieldDefinitions,
         typeReferences: ctx.typeReferences,
-        fieldReferences: ctx.fieldReferences
+        fieldReferences: ctx.fieldReferences,
+        directiveUsages: ctx.directiveUsages
     }
 }
 
@@ -248,7 +259,8 @@ function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode
                 uri: ctx.uri,
                 range: rangeOf(ctx, arg.loc),
                 nameRange: rangeOf(ctx, arg.name.loc),
-                description: descriptionOf(arg)
+                description: descriptionOf(arg),
+                required: arg.type.kind === Kind.NON_NULL_TYPE && !arg.defaultValue
             })
         }
     }

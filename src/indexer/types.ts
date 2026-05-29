@@ -20,6 +20,7 @@ export interface FieldDefinitionEntry {
     range: Range
     nameRange: Range
     description?: string
+    required?: boolean
 }
 
 export interface TypeReferenceEntry {
@@ -35,12 +36,21 @@ export interface FieldReferenceEntry {
     range: Range
 }
 
+export interface DirectiveUsageEntry {
+    name: string
+    uri: string
+    range: Range
+    nameRange: Range
+    argsPresent: string[]
+}
+
 export interface FileSymbols {
     uri: string
     typeDefinitions: TypeDefinitionEntry[]
     fieldDefinitions: FieldDefinitionEntry[]
     typeReferences: TypeReferenceEntry[]
     fieldReferences: FieldReferenceEntry[]
+    directiveUsages: DirectiveUsageEntry[]
 }
 
 export function fieldKey(parentTypeName: string, fieldName: string): string {

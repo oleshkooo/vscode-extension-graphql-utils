@@ -20,6 +20,10 @@ const TELEMETRY_DEFAULTS = {
     enabled: true
 }
 
+const DIAGNOSTICS_DEFAULTS = {
+    enabled: true
+}
+
 export const configSchema = z.object({
     logLevel: z.enum(LOG_LEVELS).default('info'),
     scan: z
@@ -38,7 +42,12 @@ export const configSchema = z.object({
         .object({
             enabled: z.boolean().default(TELEMETRY_DEFAULTS.enabled)
         })
-        .default(() => ({ ...TELEMETRY_DEFAULTS }))
+        .default(() => ({ ...TELEMETRY_DEFAULTS })),
+    diagnostics: z
+        .object({
+            enabled: z.boolean().default(DIAGNOSTICS_DEFAULTS.enabled)
+        })
+        .default(() => ({ ...DIAGNOSTICS_DEFAULTS }))
 })
 
 export type Config = z.infer<typeof configSchema>

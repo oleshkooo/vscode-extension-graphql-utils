@@ -3,6 +3,8 @@ import { languages, type ExtensionContext } from 'vscode'
 import { ConfigReloader } from './config/config-reloader'
 import { ConfigService } from './config/config.service'
 import { LANGUAGE_ID } from './constants'
+import { pickDiagnosticsService } from './diagnostics'
+import { DiagnosticsService } from './diagnostics/base-diagnostics.service'
 import { pickFileScanner } from './file-scanner'
 import { FileScanner } from './file-scanner/base-file-scanner'
 import { pickIndexer } from './indexer'
@@ -58,6 +60,9 @@ function registerInfrastructure(config: ConfigService): void {
     container.register(FileWatcher as InjectionToken<FileWatcher>, { useToken: pickFileWatcher() })
     container.register(Indexer as InjectionToken<Indexer>, { useToken: pickIndexer() })
     container.register(TelemetryService as InjectionToken<TelemetryService>, { useToken: pickTelemetryService(config) })
+    container.register(DiagnosticsService as InjectionToken<DiagnosticsService>, {
+        useToken: pickDiagnosticsService(config)
+    })
 }
 
 function registerLanguageProviders(lifecycle: Lifecycle): void {

@@ -1,6 +1,6 @@
 export const EXTENSION_ID = 'oleshko-graphql'
 export const EXTENSION_DISPLAY_NAME = "Oleshko's GraphQL"
-export const CONFIG_NAMESPACE = 'graphqlUtils'
+export const CONFIG_NAMESPACE = 'oleshkoGraphql'
 export const LANGUAGE_ID = 'graphql'
 export const OUTPUT_CHANNEL_NAME = "Oleshko's GraphQL"
 

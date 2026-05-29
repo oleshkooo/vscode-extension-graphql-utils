@@ -17,8 +17,8 @@ export default defineConfig({
     outputOptions: {
         entryFileNames: 'extension.js',
         banner: [
-            "import { createRequire as __graphqlUtilsCreateRequire } from 'node:module'",
-            'const require = __graphqlUtilsCreateRequire(import.meta.url)'
+            "import { createRequire as __oleshkoGraphqlCreateRequire } from 'node:module'",
+            'const require = __oleshkoGraphqlCreateRequire(import.meta.url)'
         ].join('\n')
     }
 })

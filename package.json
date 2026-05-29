@@ -67,7 +67,7 @@
         "configuration": {
             "title": "Oleshko's GraphQL",
             "properties": {
-                "graphqlUtils.logLevel": {
+                "oleshkoGraphql.logLevel": {
                     "type": "string",
                     "enum": [
                         "trace",
@@ -80,7 +80,7 @@
                     "default": "info",
                     "description": "Log verbosity in the Oleshko's GraphQL output channel."
                 },
-                "graphqlUtils.scan.workspaceGlobs": {
+                "oleshkoGraphql.scan.workspaceGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -90,7 +90,7 @@
                     ],
                     "description": "Globs to scan inside the workspace for GraphQL schema files."
                 },
-                "graphqlUtils.scan.nodeModulesGlobs": {
+                "oleshkoGraphql.scan.nodeModulesGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -103,7 +103,7 @@
                     ],
                     "description": "Globs to scan inside node_modules for shared GraphQL type definitions."
                 },
-                "graphqlUtils.scan.excludeGlobs": {
+                "oleshkoGraphql.scan.excludeGlobs": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -116,15 +116,20 @@
                     ],
                     "description": "Globs to exclude from scanning."
                 },
-                "graphqlUtils.indexer.debounceMs": {
+                "oleshkoGraphql.indexer.debounceMs": {
                     "type": "number",
                     "default": 250,
                     "description": "Debounce window for re-indexing after file changes."
                 },
-                "graphqlUtils.telemetry.enabled": {
+                "oleshkoGraphql.telemetry.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Report anonymous usage telemetry through the VS Code telemetry channel. Respects the global telemetry setting."
+                },
+                "oleshkoGraphql.diagnostics.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show diagnostics for GraphQL schema issues like missing required directive arguments."
                 }
             }
         },

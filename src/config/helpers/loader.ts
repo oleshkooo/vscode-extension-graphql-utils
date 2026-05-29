@@ -20,6 +20,9 @@ function readWorkspaceConfig(cfg: WorkspaceConfiguration): unknown {
         },
         telemetry: {
             enabled: cfg.get('telemetry.enabled')
+        },
+        diagnostics: {
+            enabled: cfg.get('diagnostics.enabled')
         }
     }
 }

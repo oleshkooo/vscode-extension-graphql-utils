@@ -28,14 +28,14 @@ Zero-config GraphQL & Apollo Federation language support for VS Code.
 All settings are optional. Sensible defaults work for typical Apollo Federation
 subgraph repositories.
 
-| Setting                              | Default                             | Description                                                               |
-| ------------------------------------ | ----------------------------------- | ------------------------------------------------------------------------- |
-| `graphqlUtils.scan.workspaceGlobs`   | `["**/*.{graphql,gql}"]`            | Workspace globs to index.                                                 |
-| `graphqlUtils.scan.nodeModulesGlobs` | shared-lib defaults                 | `node_modules` globs to index.                                            |
-| `graphqlUtils.scan.excludeGlobs`     | `dist`, `build`, `.git`, `coverage` | Exclusions.                                                               |
-| `graphqlUtils.indexer.debounceMs`    | `250`                               | Re-index debounce.                                                        |
-| `graphqlUtils.logLevel`              | `info`                              | Output channel log level.                                                 |
-| `graphqlUtils.telemetry.enabled`     | `true`                              | Anonymous usage telemetry. Respects the global VS Code telemetry setting. |
+| Setting                                | Default                             | Description                                                               |
+| -------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
+| `oleshkoGraphql.scan.workspaceGlobs`   | `["**/*.{graphql,gql}"]`            | Workspace globs to index.                                                 |
+| `oleshkoGraphql.scan.nodeModulesGlobs` | shared-lib defaults                 | `node_modules` globs to index.                                            |
+| `oleshkoGraphql.scan.excludeGlobs`     | `dist`, `build`, `.git`, `coverage` | Exclusions.                                                               |
+| `oleshkoGraphql.indexer.debounceMs`    | `250`                               | Re-index debounce.                                                        |
+| `oleshkoGraphql.logLevel`              | `info`                              | Output channel log level.                                                 |
+| `oleshkoGraphql.telemetry.enabled`     | `true`                              | Anonymous usage telemetry. Respects the global VS Code telemetry setting. |
 
 ## Development
 
