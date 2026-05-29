@@ -10,6 +10,7 @@ export interface TypeDefinitionEntry {
     range: Range
     nameRange: Range
     description?: string
+    directiveNames?: string[]
 }
 
 export interface FieldDefinitionEntry {

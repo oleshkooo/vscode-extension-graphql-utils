@@ -155,7 +155,8 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
         uri: ctx.uri,
         range: rangeOf(ctx, node.loc),
         nameRange: rangeOf(ctx, node.name.loc),
-        description: 'description' in node ? descriptionOf(node) : undefined
+        description: 'description' in node ? descriptionOf(node) : undefined,
+        directiveNames: 'directives' in node && node.directives ? node.directives.map(d => d.name.value) : undefined
     }
     ctx.typeDefinitions.push(entry)
 

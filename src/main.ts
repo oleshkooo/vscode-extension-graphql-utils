@@ -5,6 +5,9 @@ import { ConfigService } from './config/config.service'
 import { LANGUAGE_ID } from './constants'
 import { pickDiagnosticsService } from './diagnostics'
 import { DiagnosticsService } from './diagnostics/base-diagnostics.service'
+import { DIAGNOSTIC_RULE_TOKEN, DiagnosticRule } from './diagnostics/rules/base-diagnostic-rule'
+import { MissingRequiredArgsRule } from './diagnostics/rules/missing-required-args.rule'
+import { UnusedTypesRule } from './diagnostics/rules/unused-types.rule'
 import { pickFileScanner } from './file-scanner'
 import { FileScanner } from './file-scanner/base-file-scanner'
 import { pickIndexer } from './indexer'
@@ -28,6 +31,7 @@ import { FileWatcher } from './watcher/base-watcher'
 export async function bootstrap(context: ExtensionContext): Promise<void> {
     const config = container.resolve(ConfigService)
     registerInfrastructure(config)
+    registerDiagnosticRules()
 
     const lifecycle = container.resolve(Lifecycle)
     lifecycle.attach(context)
@@ -63,6 +67,11 @@ function registerInfrastructure(config: ConfigService): void {
     container.register(DiagnosticsService as InjectionToken<DiagnosticsService>, {
         useToken: pickDiagnosticsService(config)
     })
+}
+
+function registerDiagnosticRules(): void {
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: MissingRequiredArgsRule })
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnusedTypesRule })
 }
 
 function registerLanguageProviders(lifecycle: Lifecycle): void {
