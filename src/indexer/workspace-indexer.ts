@@ -3,18 +3,25 @@ import { workspace, type TextDocument, type Uri } from 'vscode'
 import { ConfigService } from '../config/config.service'
 import { LANGUAGE_ID } from '../constants'
 import { DiagnosticsService } from '../diagnostics/base-diagnostics.service'
+import { FederationRegistry } from '../federation/federation-registry'
 import { FileScanner } from '../file-scanner/base-file-scanner'
 import { Lifecycle } from '../lifecycle/lifecycle'
 import { Logger } from '../logger/base-logger'
 import { GraphqlParser } from '../parser/base-parser'
+import { mapWithConcurrency } from '../utils/map-with-concurrency'
 import { FileWatcher } from '../watcher/base-watcher'
 import { Indexer } from './base-indexer'
+import { crossFileSignature } from './helpers/cross-file-signature'
 import { extractDirectiveReferencesViaRegex } from './helpers/directive-extractor'
 import { analyzeDocument } from './helpers/document-analyzer'
 import { parseErrorsToValidationIssues } from './helpers/parse-errors'
 import { OffsetTable } from './helpers/positions'
 import { SymbolIndex } from './symbol-index'
 import type { FileSymbols } from './types'
+
+interface ReindexOutcome {
+    signatureChanged: boolean
+}
 
 @singleton()
 export class WorkspaceIndexer extends Indexer {
@@ -30,7 +37,8 @@ export class WorkspaceIndexer extends Indexer {
         private readonly watcher: FileWatcher,
         private readonly index: SymbolIndex,
         private readonly diagnostics: DiagnosticsService,
-        private readonly lifecycle: Lifecycle
+        private readonly lifecycle: Lifecycle,
+        private readonly federation: FederationRegistry
     ) {
         super()
     }
@@ -41,7 +49,7 @@ export class WorkspaceIndexer extends Indexer {
 
         const result = await this.scanner.scanAll()
         const all = [...result.workspace, ...result.nodeModules]
-        await Promise.all(all.map(uri => this.reindex(uri)))
+        await this.bulkReindex(all)
         this.logger.info(this.index.stats(), 'Initial index built')
         this.diagnostics.revalidateAll()
 
@@ -72,13 +80,7 @@ export class WorkspaceIndexer extends Indexer {
     }
 
     async reindex(uri: Uri): Promise<void> {
-        try {
-            const bytes = await workspace.fs.readFile(uri)
-            const source = Buffer.from(bytes).toString('utf8')
-            this.reindexFromSource(uri, source)
-        } catch (err) {
-            this.logger.warn({ uri: uri.toString(), err }, 'Failed to index file')
-        }
+        await this.reindexInternal(uri)
     }
 
     drop(uri: Uri): void {
@@ -95,38 +97,66 @@ export class WorkspaceIndexer extends Indexer {
         this.index.clear()
         const result = await this.scanner.scanAll()
         const all = [...result.workspace, ...result.nodeModules]
-        await Promise.all(all.map(uri => this.reindex(uri)))
+        await this.bulkReindex(all)
         this.logger.info(this.index.stats(), 'Index rebuilt')
         this.diagnostics.revalidateAll()
     }
 
-    private reindexFromSource(uri: Uri, source: string): void {
+    private async bulkReindex(uris: readonly Uri[]): Promise<void> {
+        this.index.beginBulk()
         try {
-            const offsets = new OffsetTable(source)
-            const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
-            const { document, errors } = this.parser.parse(source, uri.toString())
-            let symbols: FileSymbols
-            if (!document) {
-                if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
-                symbols = {
-                    uri: uri.toString(),
-                    typeDefinitions: [],
-                    fieldDefinitions: [],
-                    typeReferences: directiveRefs,
-                    fieldReferences: [],
-                    directiveUsages: [],
-                    validationIssues: parseErrorsToValidationIssues(errors, source),
-                    typeEdges: []
-                }
-            } else {
-                symbols = analyzeDocument(uri.toString(), source, document.definitions)
-                symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
-            }
+            await mapWithConcurrency(uris, this.cfg.indexer.scanConcurrency, uri => this.reindexInternal(uri))
+        } finally {
+            this.index.endBulk()
+        }
+    }
+
+    private async reindexInternal(uri: Uri): Promise<ReindexOutcome | undefined> {
+        try {
+            const bytes = await workspace.fs.readFile(uri)
+            const source = Buffer.from(bytes).toString('utf8')
+            return this.reindexFromSource(uri, source)
+        } catch (err) {
+            this.logger.warn({ uri: uri.toString(), err }, 'Failed to index file')
+            return undefined
+        }
+    }
+
+    private reindexFromSource(uri: Uri, source: string): ReindexOutcome | undefined {
+        try {
+            const previous = this.index.fileOf(uri.toString())
+            const previousSignature = previous ? crossFileSignature(previous, this.federation) : undefined
+            const symbols = this.buildSymbols(uri, source)
             this.index.upsert(symbols)
             this.diagnostics.evaluate(symbols)
+            const nextSignature = crossFileSignature(symbols, this.federation)
+            return { signatureChanged: previousSignature !== nextSignature }
         } catch (err) {
             this.logger.warn({ uri: uri.toString(), err }, 'Failed to analyze source')
+            return undefined
         }
+    }
+
+    private buildSymbols(uri: Uri, source: string): FileSymbols {
+        const offsets = new OffsetTable(source)
+        const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
+        const { document, errors } = this.parser.parse(source, uri.toString())
+        if (!document) {
+            if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
+            return {
+                uri: uri.toString(),
+                typeDefinitions: [],
+                fieldDefinitions: [],
+                typeReferences: directiveRefs,
+                fieldReferences: [],
+                directiveUsages: [],
+                validationIssues: parseErrorsToValidationIssues(errors, source),
+                typeEdges: []
+            }
+        }
+        const symbols = analyzeDocument(uri.toString(), source, document.definitions)
+        symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
+        return symbols
     }
 
     private scheduleReindex(uri: Uri): void {
@@ -135,7 +165,9 @@ export class WorkspaceIndexer extends Indexer {
         if (existing) clearTimeout(existing)
         const timer = setTimeout(() => {
             this.pending.delete(key)
-            void this.reindex(uri).then(() => this.diagnostics.revalidateAll())
+            void this.reindexInternal(uri).then(outcome => {
+                if (outcome?.signatureChanged) this.diagnostics.revalidateAll()
+            })
         }, this.cfg.indexer.debounceMs)
         this.pending.set(key, timer)
     }
@@ -146,8 +178,8 @@ export class WorkspaceIndexer extends Indexer {
         if (existing) clearTimeout(existing)
         const timer = setTimeout(() => {
             this.liveTimers.delete(key)
-            this.reindexFromSource(doc.uri, doc.getText())
-            this.diagnostics.revalidateAll()
+            const outcome = this.reindexFromSource(doc.uri, doc.getText())
+            if (outcome?.signatureChanged) this.diagnostics.revalidateAll()
         }, this.cfg.indexer.debounceMs)
         this.liveTimers.set(key, timer)
     }

@@ -23,7 +23,8 @@ const SCAN_DEFAULTS = {
 }
 
 const INDEXER_DEFAULTS = {
-    debounceMs: 300
+    debounceMs: 300,
+    scanConcurrency: 32
 }
 
 const TELEMETRY_DEFAULTS = {
@@ -49,7 +50,8 @@ export const configSchema = z.object({
         .default(() => ({ ...SCAN_DEFAULTS })),
     indexer: z
         .object({
-            debounceMs: z.number().int().nonnegative().default(INDEXER_DEFAULTS.debounceMs)
+            debounceMs: z.number().int().nonnegative().default(INDEXER_DEFAULTS.debounceMs),
+            scanConcurrency: z.number().int().min(1).default(INDEXER_DEFAULTS.scanConcurrency)
         })
         .default(() => ({ ...INDEXER_DEFAULTS })),
     telemetry: z

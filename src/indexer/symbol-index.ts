@@ -21,11 +21,13 @@ export class SymbolIndex {
     private readonly emitter = new EventEmitter<SymbolIndexEvent>()
     private versionCounter = 0
     private reachabilityCache: { version: number; rootsKey: string; reachable: Set<string> } | undefined
+    private bulkDepth = 0
+    private bulkDirty = false
 
     readonly onDidUpdate: Event<SymbolIndexEvent> = this.emitter.event
 
     upsert(symbols: FileSymbols): void {
-        this.remove(symbols.uri)
+        this.remove(symbols.uri, { silent: true })
         this.fileSymbols.set(symbols.uri, symbols)
         for (const def of symbols.typeDefinitions) push(this.typeDefinitions, def.name, def)
         for (const ref of symbols.typeReferences) push(this.typeReferences, ref.name, ref)
@@ -34,10 +36,10 @@ export class SymbolIndex {
         for (const ref of symbols.fieldReferences)
             push(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), ref)
         this.versionCounter++
-        this.emitter.fire({ uri: symbols.uri })
+        this.fireUpdate({ uri: symbols.uri })
     }
 
-    remove(uri: string): void {
+    remove(uri: string, options?: { silent?: boolean }): void {
         const existing = this.fileSymbols.get(uri)
         if (!existing) return
         this.fileSymbols.delete(uri)
@@ -50,7 +52,7 @@ export class SymbolIndex {
             drop(this.fieldReferences, fieldKey(ref.parentTypeName, ref.name), e => e.uri === uri)
         }
         this.versionCounter++
-        this.emitter.fire({ uri })
+        if (!options?.silent) this.fireUpdate({ uri })
     }
 
     clear(): void {
@@ -60,7 +62,28 @@ export class SymbolIndex {
         this.fieldReferences.clear()
         this.fileSymbols.clear()
         this.versionCounter++
-        this.emitter.fire({ uri: '*' })
+        this.fireUpdate({ uri: '*' })
+    }
+
+    beginBulk(): void {
+        this.bulkDepth++
+    }
+
+    endBulk(): void {
+        if (this.bulkDepth === 0) return
+        this.bulkDepth--
+        if (this.bulkDepth === 0 && this.bulkDirty) {
+            this.bulkDirty = false
+            this.emitter.fire({ uri: '*' })
+        }
+    }
+
+    private fireUpdate(event: SymbolIndexEvent): void {
+        if (this.bulkDepth > 0) {
+            this.bulkDirty = true
+            return
+        }
+        this.emitter.fire(event)
     }
 
     get version(): number {

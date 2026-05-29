@@ -16,7 +16,8 @@ function readWorkspaceConfig(cfg: WorkspaceConfiguration): unknown {
             excludeGlobs: cfg.get('scan.excludeGlobs')
         },
         indexer: {
-            debounceMs: cfg.get('indexer.debounceMs')
+            debounceMs: cfg.get('indexer.debounceMs'),
+            scanConcurrency: cfg.get('indexer.scanConcurrency')
         },
         telemetry: {
             enabled: cfg.get('telemetry.enabled')

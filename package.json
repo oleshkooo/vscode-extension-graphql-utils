@@ -136,6 +136,12 @@
                     "default": 300,
                     "description": "Debounce window (ms) for re-indexing on file changes and live re-validation while typing."
                 },
+                "oleshkoGraphqlUtils.indexer.scanConcurrency": {
+                    "type": "number",
+                    "default": 32,
+                    "minimum": 1,
+                    "description": "Maximum number of files read in parallel during workspace scans (initial index build and full rebuilds). Lower this if the extension floods your filesystem on very large monorepos; raise it on fast SSDs."
+                },
                 "oleshkoGraphqlUtils.telemetry.enabled": {
                     "type": "boolean",
                     "default": true,
