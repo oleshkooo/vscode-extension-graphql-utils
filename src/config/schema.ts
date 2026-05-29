@@ -30,8 +30,12 @@ const TELEMETRY_DEFAULTS = {
     enabled: true
 }
 
+export type UnknownReferencesSeverity = (typeof UNKNOWN_REFERENCES_SEVERITIES)[number]
+const UNKNOWN_REFERENCES_SEVERITIES = ['error', 'warning', 'off'] as const
+
 const DIAGNOSTICS_DEFAULTS = {
-    enabled: true
+    enabled: true,
+    unknownReferences: 'error' as UnknownReferencesSeverity
 }
 
 export const configSchema = z.object({
@@ -55,7 +59,8 @@ export const configSchema = z.object({
         .default(() => ({ ...TELEMETRY_DEFAULTS })),
     diagnostics: z
         .object({
-            enabled: z.boolean().default(DIAGNOSTICS_DEFAULTS.enabled)
+            enabled: z.boolean().default(DIAGNOSTICS_DEFAULTS.enabled),
+            unknownReferences: z.enum(UNKNOWN_REFERENCES_SEVERITIES).default(DIAGNOSTICS_DEFAULTS.unknownReferences)
         })
         .default(() => ({ ...DIAGNOSTICS_DEFAULTS }))
 })

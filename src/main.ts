@@ -11,6 +11,7 @@ import { CrossFileDuplicateTypesRule } from './diagnostics/rules/cross-file-dupl
 import { MissingRequiredArgsRule } from './diagnostics/rules/missing-required-args.rule'
 import { SchemaValidationRule } from './diagnostics/rules/schema-validation.rule'
 import { UnknownEnumValueRule } from './diagnostics/rules/unknown-enum-value.rule'
+import { UnknownReferencesRule } from './diagnostics/rules/unknown-references.rule'
 import { UnusedTypesRule } from './diagnostics/rules/unused-types.rule'
 import { pickFileScanner } from './file-scanner'
 import { FileScanner } from './file-scanner/base-file-scanner'
@@ -79,6 +80,7 @@ function registerDiagnosticRules(): void {
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: CrossFileDuplicateTypesRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: MissingRequiredArgsRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnknownEnumValueRule })
+    container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnknownReferencesRule })
     container.register<DiagnosticRule>(DIAGNOSTIC_RULE_TOKEN, { useToken: UnusedTypesRule })
 }
 

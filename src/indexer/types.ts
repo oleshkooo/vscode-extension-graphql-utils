@@ -29,6 +29,7 @@ export interface TypeReferenceEntry {
     name: string
     uri: string
     range: Range
+    isDirective?: boolean
 }
 
 export interface FieldReferenceEntry {

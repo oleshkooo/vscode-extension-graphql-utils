@@ -22,7 +22,8 @@ function readWorkspaceConfig(cfg: WorkspaceConfiguration): unknown {
             enabled: cfg.get('telemetry.enabled')
         },
         diagnostics: {
-            enabled: cfg.get('diagnostics.enabled')
+            enabled: cfg.get('diagnostics.enabled'),
+            unknownReferences: cfg.get('diagnostics.unknownReferences')
         }
     }
 }

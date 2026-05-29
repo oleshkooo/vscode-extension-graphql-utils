@@ -145,6 +145,16 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Show diagnostics for GraphQL schema issues like missing required directive arguments."
+                },
+                "oleshkoGraphqlUtils.diagnostics.unknownReferences": {
+                    "type": "string",
+                    "enum": [
+                        "error",
+                        "warning",
+                        "off"
+                    ],
+                    "default": "error",
+                    "description": "Severity for references to types and directives that are not defined anywhere in the indexed workspace. Set to 'off' for federation-only setups where some types are owned by other subgraphs."
                 }
             }
         },

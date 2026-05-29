@@ -25,7 +25,8 @@ export function extractDirectiveReferencesViaRegex(
         out.push({
             name,
             uri,
-            range: offsets.rangeAt(start, end)
+            range: offsets.rangeAt(start, end),
+            isDirective: true
         })
     }
     return out
