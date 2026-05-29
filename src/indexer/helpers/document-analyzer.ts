@@ -4,6 +4,7 @@ import type {
     DirectiveNode,
     EnumTypeDefinitionNode,
     EnumTypeExtensionNode,
+    EnumValueDefinitionNode,
     FieldDefinitionNode,
     InputObjectTypeDefinitionNode,
     InputObjectTypeExtensionNode,
@@ -18,7 +19,8 @@ import type {
     ScalarTypeExtensionNode,
     TypeNode,
     UnionTypeDefinitionNode,
-    UnionTypeExtensionNode
+    UnionTypeExtensionNode,
+    ValueNode
 } from 'graphql'
 import { Kind } from 'graphql'
 import type {
@@ -119,6 +121,9 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
     if ('types' in node && node.types) {
         for (const named of node.types) addTypeReference(ctx, named)
     }
+    if ('values' in node && node.values) {
+        for (const value of node.values) analyzeEnumValue(ctx, entry.name, value)
+    }
     if ('fields' in node && node.fields) {
         if (kind === 'input') {
             for (const field of node.fields as readonly InputValueDefinitionNode[]) {
@@ -148,10 +153,7 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
     })
     addNestedTypeReferences(ctx, field.type)
     if (field.arguments) {
-        for (const arg of field.arguments) {
-            addNestedTypeReferences(ctx, arg.type)
-            if (arg.directives) for (const directive of arg.directives) addDirectiveReference(ctx, directive)
-        }
+        for (const arg of field.arguments) analyzeArgument(ctx, arg)
     }
     if (field.directives) for (const directive of field.directives) addDirectiveReference(ctx, directive)
 }
@@ -168,12 +170,34 @@ function analyzeInputField(ctx: AnalyzerContext, parent: string, field: InputVal
         description: descriptionOf(field)
     })
     addNestedTypeReferences(ctx, field.type)
+    if (field.defaultValue) collectEnumValueRefs(ctx, typeName, field.defaultValue)
     if (field.directives) for (const directive of field.directives) addDirectiveReference(ctx, directive)
 }
 
+function analyzeArgument(ctx: AnalyzerContext, arg: InputValueDefinitionNode): void {
+    const argTypeName = innerTypeName(arg.type)
+    addNestedTypeReferences(ctx, arg.type)
+    if (arg.defaultValue) collectEnumValueRefs(ctx, argTypeName, arg.defaultValue)
+    if (arg.directives) for (const directive of arg.directives) addDirectiveReference(ctx, directive)
+}
+
+function analyzeEnumValue(ctx: AnalyzerContext, parent: string, value: EnumValueDefinitionNode): void {
+    ctx.fieldDefinitions.push({
+        parentTypeName: parent,
+        name: value.name.value,
+        typeName: parent,
+        uri: ctx.uri,
+        range: rangeOf(ctx, value.loc),
+        nameRange: rangeOf(ctx, value.name.loc),
+        description: descriptionOf(value)
+    })
+    if (value.directives) for (const directive of value.directives) addDirectiveReference(ctx, directive)
+}
+
 function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode): void {
+    const directiveName = node.name.value
     ctx.typeDefinitions.push({
-        name: node.name.value,
+        name: directiveName,
         kind: 'directive',
         isExtension: false,
         uri: ctx.uri,
@@ -182,7 +206,38 @@ function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode
         description: descriptionOf(node)
     })
     if (node.arguments) {
-        for (const arg of node.arguments) addNestedTypeReferences(ctx, arg.type)
+        const parent = directiveArgsParent(directiveName)
+        for (const arg of node.arguments) {
+            addNestedTypeReferences(ctx, arg.type)
+            ctx.fieldDefinitions.push({
+                parentTypeName: parent,
+                name: arg.name.value,
+                typeName: innerTypeName(arg.type),
+                uri: ctx.uri,
+                range: rangeOf(ctx, arg.loc),
+                nameRange: rangeOf(ctx, arg.name.loc),
+                description: descriptionOf(arg)
+            })
+        }
+    }
+}
+
+export function directiveArgsParent(directiveName: string): string {
+    return `@${directiveName}`
+}
+
+function collectEnumValueRefs(ctx: AnalyzerContext, expectedTypeName: string, value: ValueNode): void {
+    if (value.kind === Kind.ENUM) {
+        ctx.fieldReferences.push({
+            parentTypeName: expectedTypeName,
+            name: value.value,
+            uri: ctx.uri,
+            range: rangeOf(ctx, value.loc)
+        })
+        return
+    }
+    if (value.kind === Kind.LIST) {
+        for (const v of value.values) collectEnumValueRefs(ctx, expectedTypeName, v)
     }
 }
 
@@ -206,7 +261,7 @@ function addDirectiveReference(ctx: AnalyzerContext, directive: DirectiveNode): 
     ctx.typeReferences.push({
         name: directive.name.value,
         uri: ctx.uri,
-        range: rangeOf(ctx, directive.name.loc)
+        range: rangeOf(ctx, directive.loc)
     })
 }
 

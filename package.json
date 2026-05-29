@@ -24,7 +24,6 @@
         "language-server"
     ],
     "activationEvents": [
-        "onLanguage:graphql",
         "workspaceContains:**/*.graphql",
         "workspaceContains:**/*.gql"
     ],
@@ -127,6 +126,11 @@
                     "default": true,
                     "description": "Report anonymous usage telemetry through the VS Code telemetry channel. Respects the global telemetry setting."
                 }
+            }
+        },
+        "configurationDefaults": {
+            "[graphql]": {
+                "editor.wordBasedSuggestions": "off"
             }
         }
     },

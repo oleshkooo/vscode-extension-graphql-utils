@@ -61,6 +61,26 @@ export class SymbolIndex {
         return this.fieldDefinitions.get(fieldKey(parentTypeName, fieldName)) ?? []
     }
 
+    findFieldDefinitionsByParent(parentTypeName: string): readonly FieldDefinitionEntry[] {
+        const out: FieldDefinitionEntry[] = []
+        for (const list of this.fieldDefinitions.values()) {
+            for (const def of list) {
+                if (def.parentTypeName === parentTypeName) out.push(def)
+            }
+        }
+        return out
+    }
+
+    typeDefinitionsByKind(kind: TypeDefinitionEntry['kind']): TypeDefinitionEntry[] {
+        const out: TypeDefinitionEntry[] = []
+        for (const list of this.typeDefinitions.values()) {
+            for (const def of list) {
+                if (def.kind === kind && !out.some(d => d.name === def.name)) out.push(def)
+            }
+        }
+        return out
+    }
+
     findFieldReferences(parentTypeName: string, fieldName: string): readonly FieldReferenceEntry[] {
         return this.fieldReferences.get(fieldKey(parentTypeName, fieldName)) ?? []
     }

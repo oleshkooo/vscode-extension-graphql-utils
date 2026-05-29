@@ -10,6 +10,7 @@ import {
 import { FederationRegistry } from '../federation/federation-registry'
 import { SymbolIndex } from '../indexer/symbol-index'
 import type { TypeDefinitionEntry } from '../indexer/types'
+import { BuiltinScalarsRegistry } from '../scalars/builtin-scalars.registry'
 import { DocumentSymbolResolver } from './helpers/document-symbol-resolver'
 
 @singleton()
@@ -17,7 +18,8 @@ export class GraphqlHoverProvider implements VscHoverProvider {
     constructor(
         private readonly resolver: DocumentSymbolResolver,
         private readonly index: SymbolIndex,
-        private readonly federation: FederationRegistry
+        private readonly federation: FederationRegistry,
+        private readonly builtins: BuiltinScalarsRegistry
     ) {}
 
     provideHover(document: TextDocument, position: Position): ProviderResult<Hover> {
@@ -42,6 +44,15 @@ export class GraphqlHoverProvider implements VscHoverProvider {
                     md.appendMarkdown(`- \`${arg.name}: ${arg.type}\` — ${arg.description}\n`)
                 }
             }
+            return new Hover(md)
+        }
+
+        const builtin = this.builtins.getBuiltinScalar(name)
+        if (builtin) {
+            const md = new MarkdownString()
+            md.appendCodeblock(`scalar ${builtin.name}`, 'graphql')
+            md.appendMarkdown(`\n\n${builtin.description}`)
+            if (builtin.specUrl) md.appendMarkdown(`\n\n[GraphQL spec](${builtin.specUrl})`)
             return new Hover(md)
         }
 
