@@ -219,28 +219,78 @@
             ]
         },
         "extend": {
-            "begin": "\\b(extend)\\s+(type|input|enum|interface|union|scalar|schema)\\s+([A-Z][_0-9A-Za-z]*)?",
-            "beginCaptures": {
-                "1": { "name": "keyword.other.extend.graphql" },
-                "2": { "name": "keyword.other.typedef.graphql" },
-                "3": { "name": "entity.name.type.declaration.graphql" }
-            },
-            "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
             "patterns": [
-                { "include": "#comments" },
-                { "include": "#description" },
                 {
-                    "match": "\\b(implements)\\b",
-                    "name": "keyword.other.implements.graphql"
+                    "begin": "\\b(extend)\\s+(type|input|interface|union|scalar)\\s+([A-Z][_0-9A-Za-z]*)?",
+                    "beginCaptures": {
+                        "1": { "name": "keyword.other.extend.graphql" },
+                        "2": { "name": "keyword.other.typedef.graphql" },
+                        "3": { "name": "entity.name.type.declaration.graphql" }
+                    },
+                    "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+                    "patterns": [
+                        { "include": "#comments" },
+                        { "include": "#description" },
+                        {
+                            "match": "\\b(implements)\\b",
+                            "name": "keyword.other.implements.graphql"
+                        },
+                        { "match": "&", "name": "keyword.operator.amp.graphql" },
+                        { "match": "=", "name": "keyword.operator.equals.graphql" },
+                        { "match": "\\|", "name": "keyword.operator.pipe.graphql" },
+                        { "include": "#directive-usage" },
+                        { "include": "#field-block" },
+                        { "include": "#built-in-scalars" },
+                        { "include": "#federation-scalars" },
+                        { "include": "#type-name" }
+                    ]
                 },
-                { "match": "[&|]", "name": "keyword.operator.graphql" },
-                { "match": "=", "name": "keyword.operator.equals.graphql" },
-                { "include": "#directive-usage" },
-                { "include": "#enum-body" },
-                { "include": "#field-block" },
-                { "include": "#built-in-scalars" },
-                { "include": "#federation-scalars" },
-                { "include": "#type-name" }
+                {
+                    "begin": "\\b(extend)\\s+(enum)\\s+([A-Z][_0-9A-Za-z]*)?",
+                    "beginCaptures": {
+                        "1": { "name": "keyword.other.extend.graphql" },
+                        "2": { "name": "keyword.other.typedef.graphql" },
+                        "3": { "name": "entity.name.type.declaration.graphql" }
+                    },
+                    "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+                    "patterns": [
+                        { "include": "#comments" },
+                        { "include": "#description" },
+                        { "include": "#directive-usage" },
+                        { "include": "#enum-body" }
+                    ]
+                },
+                {
+                    "begin": "\\b(extend)\\s+(schema)\\b",
+                    "beginCaptures": {
+                        "1": { "name": "keyword.other.extend.graphql" },
+                        "2": { "name": "keyword.other.schema.graphql" }
+                    },
+                    "end": "(?<=\\})|(?=\\b(?:type|input|enum|interface|union|scalar|extend|directive|schema|fragment|query|mutation|subscription)\\b)|(?=\\Z)",
+                    "patterns": [
+                        { "include": "#comments" },
+                        { "include": "#directive-usage" },
+                        {
+                            "begin": "\\{",
+                            "beginCaptures": { "0": { "name": "punctuation.curlybrace.open.graphql" } },
+                            "end": "\\}",
+                            "endCaptures": { "0": { "name": "punctuation.curlybrace.close.graphql" } },
+                            "patterns": [
+                                { "include": "#comments" },
+                                {
+                                    "match": "\\b(query|mutation|subscription)\\s*(:)",
+                                    "captures": {
+                                        "1": { "name": "keyword.operation.graphql" },
+                                        "2": { "name": "punctuation.colon.graphql" }
+                                    }
+                                },
+                                { "include": "#built-in-scalars" },
+                                { "include": "#federation-scalars" },
+                                { "include": "#type-name" }
+                            ]
+                        }
+                    ]
+                }
             ]
         },
         "directive-definition": {
@@ -394,7 +444,7 @@
                 {
                     "match": "([_A-Za-z][_0-9A-Za-z]*)\\s*(:)",
                     "captures": {
-                        "1": { "name": "entity.name.type.graphql" },
+                        "1": { "name": "variable.parameter.graphql" },
                         "2": { "name": "punctuation.colon.graphql" }
                     }
                 },

@@ -122,7 +122,12 @@
                         "**/dist/**",
                         "**/build/**",
                         "**/.git/**",
-                        "**/coverage/**"
+                        "**/coverage/**",
+                        "**/__tests__/**",
+                        "**/__test__/**",
+                        "**/__mocks__/**",
+                        "**/__fixtures__/**",
+                        "**/__snapshots__/**"
                     ],
                     "description": "Globs to exclude from scanning."
                 },

@@ -9,7 +9,17 @@ const SCAN_DEFAULTS = {
         'node_modules/@*/*/type-defs/**/*.{graphql,gql}',
         'node_modules/@*/*/src/type-defs/**/*.{graphql,gql}'
     ],
-    excludeGlobs: ['**/dist/**', '**/build/**', '**/.git/**', '**/coverage/**']
+    excludeGlobs: [
+        '**/dist/**',
+        '**/build/**',
+        '**/.git/**',
+        '**/coverage/**',
+        '**/__tests__/**',
+        '**/__test__/**',
+        '**/__mocks__/**',
+        '**/__fixtures__/**',
+        '**/__snapshots__/**'
+    ]
 }
 
 const INDEXER_DEFAULTS = {
