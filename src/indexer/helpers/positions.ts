@@ -23,8 +23,7 @@ export class OffsetTable {
     }
 
     private lastOffset(): number {
-        const last = this.lineStarts[this.lineStarts.length - 1] as number
-        return last
+        return this.lineStarts[this.lineStarts.length - 1] as number
     }
 
     private binarySearchLine(offset: number): number {

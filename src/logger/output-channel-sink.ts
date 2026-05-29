@@ -1,5 +1,12 @@
 import type { LogOutputChannel } from 'vscode'
 
+export interface SinkEvent {
+    level: number
+    time?: number
+    msg?: string
+    [k: string]: unknown
+}
+
 const LEVEL_BY_NUMBER: Record<number, 'trace' | 'debug' | 'info' | 'warn' | 'error'> = {
     10: 'trace',
     20: 'debug',
@@ -7,13 +14,6 @@ const LEVEL_BY_NUMBER: Record<number, 'trace' | 'debug' | 'info' | 'warn' | 'err
     40: 'warn',
     50: 'error',
     60: 'error'
-}
-
-export interface SinkEvent {
-    level: number
-    time?: number
-    msg?: string
-    [k: string]: unknown
 }
 
 export class OutputChannelSink {

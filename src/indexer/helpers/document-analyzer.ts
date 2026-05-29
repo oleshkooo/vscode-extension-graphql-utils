@@ -25,7 +25,6 @@ import type {
     ValueNode
 } from 'graphql'
 import { Kind, visit } from 'graphql'
-import { parseFieldSet, type FieldSetField } from './fieldset-parser'
 import type {
     DirectiveUsageEntry,
     FieldDefinitionEntry,
@@ -37,6 +36,7 @@ import type {
     TypeReferenceEntry,
     ValidationIssue
 } from '../types'
+import { parseFieldSet, type FieldSetField } from './fieldset-parser'
 import { OffsetTable } from './positions'
 
 interface AnalyzerContext {
@@ -51,6 +51,20 @@ interface AnalyzerContext {
     typeEdges: TypeEdge[]
 }
 
+type TypeLikeNode =
+    | ObjectTypeDefinitionNode
+    | ObjectTypeExtensionNode
+    | InputObjectTypeDefinitionNode
+    | InputObjectTypeExtensionNode
+    | InterfaceTypeDefinitionNode
+    | InterfaceTypeExtensionNode
+    | EnumTypeDefinitionNode
+    | EnumTypeExtensionNode
+    | UnionTypeDefinitionNode
+    | UnionTypeExtensionNode
+    | ScalarTypeDefinitionNode
+    | ScalarTypeExtensionNode
+
 const TYPE_DEF_KINDS = new Map<string, { kind: TypeKind; isExtension: boolean }>([
     [Kind.OBJECT_TYPE_DEFINITION, { kind: 'object', isExtension: false }],
     [Kind.OBJECT_TYPE_EXTENSION, { kind: 'object', isExtension: true }],
@@ -64,6 +78,23 @@ const TYPE_DEF_KINDS = new Map<string, { kind: TypeKind; isExtension: boolean }>
     [Kind.UNION_TYPE_EXTENSION, { kind: 'union', isExtension: true }],
     [Kind.SCALAR_TYPE_DEFINITION, { kind: 'scalar', isExtension: false }],
     [Kind.SCALAR_TYPE_EXTENSION, { kind: 'scalar', isExtension: true }]
+])
+
+const DIRECTIVE_ARG_PLACEHOLDER_PREFIX = '@@arg:'
+const FIELD_SELECTION_DIRECTIVES = new Map<string, string>([
+    ['key', 'fields'],
+    ['requires', 'fields'],
+    ['provides', 'fields']
+])
+
+const FS_PATH_PREFIX = '@@fspath:'
+const TYPE_EXTENSION_KINDS = new Set<string>([
+    Kind.OBJECT_TYPE_EXTENSION,
+    Kind.INPUT_OBJECT_TYPE_EXTENSION,
+    Kind.INTERFACE_TYPE_EXTENSION,
+    Kind.UNION_TYPE_EXTENSION,
+    Kind.ENUM_TYPE_EXTENSION,
+    Kind.SCALAR_TYPE_EXTENSION
 ])
 
 export function analyzeDocument(uri: string, source: string, definitions: readonly DefinitionNode[]): FileSymbols {
@@ -111,8 +142,6 @@ export function analyzeDocument(uri: string, source: string, definitions: readon
     }
 }
 
-const DIRECTIVE_ARG_PLACEHOLDER_PREFIX = '@@arg:'
-
 export function directiveArgPlaceholder(directiveName: string, argName: string): string {
     return `${DIRECTIVE_ARG_PLACEHOLDER_PREFIX}${directiveName}/${argName}`
 }
@@ -125,12 +154,6 @@ export function parseDirectiveArgPlaceholder(parent: string): { directiveName: s
     return { directiveName: body.slice(0, slash), argName: body.slice(slash + 1) }
 }
 
-const FIELD_SELECTION_DIRECTIVES = new Map<string, string>([
-    ['key', 'fields'],
-    ['requires', 'fields'],
-    ['provides', 'fields']
-])
-
 function analyzeDefinition(ctx: AnalyzerContext, def: DefinitionNode): void {
     const meta = TYPE_DEF_KINDS.get(def.kind)
     if (meta) {
@@ -141,20 +164,6 @@ function analyzeDefinition(ctx: AnalyzerContext, def: DefinitionNode): void {
         analyzeDirectiveDef(ctx, def)
     }
 }
-
-type TypeLikeNode =
-    | ObjectTypeDefinitionNode
-    | ObjectTypeExtensionNode
-    | InputObjectTypeDefinitionNode
-    | InputObjectTypeExtensionNode
-    | InterfaceTypeDefinitionNode
-    | InterfaceTypeExtensionNode
-    | EnumTypeDefinitionNode
-    | EnumTypeExtensionNode
-    | UnionTypeDefinitionNode
-    | UnionTypeExtensionNode
-    | ScalarTypeDefinitionNode
-    | ScalarTypeExtensionNode
 
 function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind, isExtension: boolean): void {
     const entry: TypeDefinitionEntry = {
@@ -366,8 +375,6 @@ function emitFieldSetLevel(
     }
 }
 
-const FS_PATH_PREFIX = '@@fspath:'
-
 export function encodeFsPath(hostType: string, path: readonly string[]): string {
     return `${FS_PATH_PREFIX}${hostType}/${path.join('/')}`
 }
@@ -444,12 +451,7 @@ function detectDuplicateTypeNames(ctx: AnalyzerContext, definitions: readonly De
     const seen = new Set<string>()
     for (const def of definitions) {
         if (!('name' in def) || !def.name) continue
-        if (def.kind === Kind.OBJECT_TYPE_EXTENSION) continue
-        if (def.kind === Kind.INPUT_OBJECT_TYPE_EXTENSION) continue
-        if (def.kind === Kind.INTERFACE_TYPE_EXTENSION) continue
-        if (def.kind === Kind.UNION_TYPE_EXTENSION) continue
-        if (def.kind === Kind.ENUM_TYPE_EXTENSION) continue
-        if (def.kind === Kind.SCALAR_TYPE_EXTENSION) continue
+        if (TYPE_EXTENSION_KINDS.has(def.kind)) continue
         const name = def.name.value
         if (seen.has(name)) {
             ctx.validationIssues.push({

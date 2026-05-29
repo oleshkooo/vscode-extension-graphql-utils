@@ -18,7 +18,7 @@ export class FieldParentResolver {
         return parent
     }
 
-    private resolveDirectiveArgType(directiveName: string, argName: string): string | undefined {
+    resolveDirectiveArgType(directiveName: string, argName: string): string | undefined {
         const spec = this.federation.getDirective(directiveName)
         if (spec) {
             const arg = spec.args.find(a => a.name === argName)
@@ -31,8 +31,7 @@ export class FieldParentResolver {
     private resolveFsPath(hostType: string, path: readonly string[]): string | undefined {
         let currentType = hostType
         for (const segment of path) {
-            const fields = this.index.findFieldDefinitions(currentType, segment)
-            const first = fields[0]
+            const first = this.index.findFieldDefinitions(currentType, segment)[0]
             if (!first) return undefined
             currentType = first.typeName
         }

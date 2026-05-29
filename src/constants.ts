@@ -4,8 +4,8 @@ export const OUTPUT_CHANNEL_NAME = "Oleshko's GraphQL Utils"
 export const CONFIG_NAMESPACE = 'oleshkoGraphqlUtils'
 export const LANGUAGE_ID = 'graphql'
 
-export const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const
 export type LogLevel = (typeof LOG_LEVELS)[number]
+export const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const
 
 export const DIRECTIVE_LOCATIONS: readonly string[] = [
     'SCHEMA',

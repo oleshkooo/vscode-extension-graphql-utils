@@ -39,10 +39,4 @@ export class FederationRegistry {
     directives(): readonly FederationDirectiveSpec[] {
         return [...STANDARD_DIRECTIVES, ...FEDERATION_DIRECTIVES]
     }
-
-    directiveWithFieldSelection(name: string): FederationDirectiveSpec | undefined {
-        const spec = this.getDirective(name)
-        if (!spec || !spec.fieldSelectionArg) return undefined
-        return spec
-    }
 }

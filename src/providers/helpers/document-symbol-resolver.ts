@@ -1,10 +1,8 @@
 import { singleton } from 'tsyringe'
 import type { Position, TextDocument } from 'vscode'
 import { GraphqlParser } from '../../parser/base-parser'
-import { extractDirectiveReferencesViaRegex } from '../../indexer/helpers/directive-extractor'
-import { analyzeDocument } from '../../indexer/helpers/document-analyzer'
-import { parseErrorsToValidationIssues } from '../../indexer/helpers/parse-errors'
-import { OffsetTable } from '../../indexer/helpers/positions'
+import { buildSymbolsFromSource } from '../../indexer/helpers/build-symbols'
+import { SymbolIndex } from '../../indexer/symbol-index'
 import type {
     FieldDefinitionEntry,
     FieldReferenceEntry,
@@ -12,7 +10,6 @@ import type {
     TypeDefinitionEntry,
     TypeReferenceEntry
 } from '../../indexer/types'
-import { SymbolIndex } from '../../indexer/symbol-index'
 
 export type ResolvedSymbol =
     | { kind: 'type-definition'; entry: TypeDefinitionEntry }
@@ -33,31 +30,12 @@ export class DocumentSymbolResolver {
     }
 
     symbolsFor(document: TextDocument): FileSymbols {
-        if (document.isDirty || document.isUntitled) return this.parseLive(document)
-        return this.index.fileOf(document.uri.toString()) ?? this.parseLive(document)
-    }
-
-    private parseLive(document: TextDocument): FileSymbols {
         const uri = document.uri.toString()
-        const source = document.getText()
-        const offsets = new OffsetTable(source)
-        const directiveRefs = extractDirectiveReferencesViaRegex(uri, source, offsets)
-        const { document: ast, errors } = this.parser.parse(source, uri)
-        if (!ast) {
-            return {
-                uri,
-                typeDefinitions: [],
-                fieldDefinitions: [],
-                typeReferences: directiveRefs,
-                fieldReferences: [],
-                directiveUsages: [],
-                validationIssues: parseErrorsToValidationIssues(errors, source),
-                typeEdges: []
-            }
+        if (!document.isDirty && !document.isUntitled) {
+            const cached = this.index.fileOf(uri)
+            if (cached) return cached
         }
-        const symbols = analyzeDocument(uri, source, ast.definitions)
-        symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
-        return symbols
+        return buildSymbolsFromSource(this.parser, uri, document.getText()).symbols
     }
 }
 
@@ -87,17 +65,4 @@ function findSymbolAt(symbols: FileSymbols, position: Position): ResolvedSymbol 
 function rangeSize(range: import('vscode').Range): number {
     if (range.start.line === range.end.line) return range.end.character - range.start.character
     return (range.end.line - range.start.line) * 10000 + range.end.character
-}
-
-function empty(uri: string): FileSymbols {
-    return {
-        uri,
-        typeDefinitions: [],
-        fieldDefinitions: [],
-        typeReferences: [],
-        fieldReferences: [],
-        directiveUsages: [],
-        validationIssues: [],
-        typeEdges: []
-    }
 }

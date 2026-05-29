@@ -11,6 +11,12 @@ export type CompletionContext =
     | { kind: 'keywords' }
     | { kind: 'none' }
 
+interface ParenScope {
+    atValuePosition: boolean
+    directiveName: string | undefined
+    argName: string | undefined
+}
+
 const MAX_LOOKBACK_CHARS = 2000
 
 export function detectCompletionContext(document: TextDocument, position: Position): CompletionContext {
@@ -77,12 +83,6 @@ function readPrefix(document: TextDocument, position: Position): string {
     return fullPrefix.slice(fullPrefix.length - MAX_LOOKBACK_CHARS)
 }
 
-interface ParenScope {
-    atValuePosition: boolean
-    directiveName: string | undefined
-    argName: string | undefined
-}
-
 function detectParenScope(stripped: string): ParenScope | undefined {
     const parenStack: number[] = []
     for (let i = 0; i < stripped.length; i++) {
@@ -95,8 +95,8 @@ function detectParenScope(stripped: string): ParenScope | undefined {
     const parenPos = parenStack[parenStack.length - 1] as number
     const before = stripped.slice(0, parenPos)
     const m = /@([_A-Za-z][_0-9A-Za-z]*)\s*$/.exec(before)
-    const isUsage = !!m && !/\bdirective\s*$/.test(before.slice(0, before.length - m[0].length))
-    const directiveName = isUsage ? (m![1] as string) : undefined
+    const isUsage = m !== null && !/\bdirective\s*$/.test(before.slice(0, m.index))
+    const directiveName = isUsage ? (m[1] as string) : undefined
 
     let depth = 0
     let sawColon = false

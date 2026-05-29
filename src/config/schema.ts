@@ -40,6 +40,7 @@ const DIAGNOSTICS_DEFAULTS = {
     knownDirectives: ['constraint']
 }
 
+export type Config = z.infer<typeof configSchema>
 export const configSchema = z.object({
     logLevel: z.enum(LOG_LEVELS).default('info'),
     scan: z
@@ -68,5 +69,3 @@ export const configSchema = z.object({
         })
         .default(() => ({ ...DIAGNOSTICS_DEFAULTS }))
 })
-
-export type Config = z.infer<typeof configSchema>

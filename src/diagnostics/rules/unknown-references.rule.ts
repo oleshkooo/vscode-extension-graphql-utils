@@ -18,35 +18,36 @@ export class UnknownReferencesRule extends DiagnosticRule {
         const setting = this.cfg.diagnostics.unknownReferences
         if (setting === 'off') return []
         const severity = severityFor(setting)
+        const allowedDirectives = this.allowedDirectiveNames()
         const out: Diagnostic[] = []
         for (const ref of symbols.typeReferences) {
             if (ref.isDirective) continue
-            if (this.isKnownType(ref, ctx)) continue
+            if (isKnownType(ref, ctx)) continue
             out.push(buildTypeDiagnostic(ref, severity))
         }
         for (const usage of symbols.directiveUsages) {
-            if (this.isKnownDirective(usage, ctx)) continue
+            if (isKnownDirective(usage, allowedDirectives, ctx)) continue
             out.push(buildDirectiveDiagnostic(usage, severity))
         }
         return out
     }
 
-    private isKnownType(ref: TypeReferenceEntry, ctx: RuleContext): boolean {
-        if (BUILTIN_SCALARS.has(ref.name)) return true
-        if (ref.name.startsWith('__')) return true
-        if (ctx.federation.isFederationScalar(ref.name)) return true
-        return ctx.index.findTypeDefinitions(ref.name).some(d => d.kind !== 'directive')
-    }
-
-    private isKnownDirective(usage: DirectiveUsageEntry, ctx: RuleContext): boolean {
-        if (ctx.federation.isBuiltinDirective(usage.name)) return true
-        if (this.allowedDirectiveNames().has(usage.name)) return true
-        return ctx.index.findTypeDefinitions(usage.name).some(d => d.kind === 'directive')
-    }
-
     private allowedDirectiveNames(): Set<string> {
         return new Set(this.cfg.diagnostics.knownDirectives.map(name => name.replace(/^@/, '')))
     }
+}
+
+function isKnownType(ref: TypeReferenceEntry, ctx: RuleContext): boolean {
+    if (BUILTIN_SCALARS.has(ref.name)) return true
+    if (ref.name.startsWith('__')) return true
+    if (ctx.federation.isFederationScalar(ref.name)) return true
+    return ctx.index.findTypeDefinitions(ref.name).some(d => d.kind !== 'directive')
+}
+
+function isKnownDirective(usage: DirectiveUsageEntry, allowed: Set<string>, ctx: RuleContext): boolean {
+    if (ctx.federation.isBuiltinDirective(usage.name)) return true
+    if (allowed.has(usage.name)) return true
+    return ctx.index.findTypeDefinitions(usage.name).some(d => d.kind === 'directive')
 }
 
 function severityFor(setting: UnknownReferencesSeverity): DiagnosticSeverity {

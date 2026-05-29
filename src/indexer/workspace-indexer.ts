@@ -11,13 +11,9 @@ import { GraphqlParser } from '../parser/base-parser'
 import { mapWithConcurrency } from '../utils/map-with-concurrency'
 import { FileWatcher } from '../watcher/base-watcher'
 import { Indexer } from './base-indexer'
+import { buildSymbolsFromSource } from './helpers/build-symbols'
 import { crossFileSignature } from './helpers/cross-file-signature'
-import { extractDirectiveReferencesViaRegex } from './helpers/directive-extractor'
-import { analyzeDocument } from './helpers/document-analyzer'
-import { parseErrorsToValidationIssues } from './helpers/parse-errors'
-import { OffsetTable } from './helpers/positions'
 import { SymbolIndex } from './symbol-index'
-import type { FileSymbols } from './types'
 
 interface ReindexOutcome {
     signatureChanged: boolean
@@ -69,10 +65,11 @@ export class WorkspaceIndexer extends Indexer {
         this.lifecycle.register(
             workspace.onDidCloseTextDocument(doc => {
                 if (doc.languageId !== LANGUAGE_ID) return
-                const existing = this.liveTimers.get(doc.uri.toString())
+                const key = doc.uri.toString()
+                const existing = this.liveTimers.get(key)
                 if (existing) {
                     clearTimeout(existing)
-                    this.liveTimers.delete(doc.uri.toString())
+                    this.liveTimers.delete(key)
                 }
                 this.scheduleReindex(doc.uri)
             })
@@ -123,40 +120,23 @@ export class WorkspaceIndexer extends Indexer {
     }
 
     private reindexFromSource(uri: Uri, source: string): ReindexOutcome | undefined {
+        const key = uri.toString()
         try {
-            const previous = this.index.fileOf(uri.toString())
+            const built = buildSymbolsFromSource(this.parser, key, source)
+            if (built.parseFailed && built.parseErrorCount > 0) {
+                this.logger.trace({ uri: key, errors: built.parseErrorCount }, 'Parse errors')
+            }
+            const { symbols } = built
+            const previous = this.index.fileOf(key)
             const previousSignature = previous ? crossFileSignature(previous, this.federation) : undefined
-            const symbols = this.buildSymbols(uri, source)
             this.index.upsert(symbols)
             this.diagnostics.evaluate(symbols)
             const nextSignature = crossFileSignature(symbols, this.federation)
             return { signatureChanged: previousSignature !== nextSignature }
         } catch (err) {
-            this.logger.warn({ uri: uri.toString(), err }, 'Failed to analyze source')
+            this.logger.warn({ uri: key, err }, 'Failed to analyze source')
             return undefined
         }
-    }
-
-    private buildSymbols(uri: Uri, source: string): FileSymbols {
-        const offsets = new OffsetTable(source)
-        const directiveRefs = extractDirectiveReferencesViaRegex(uri.toString(), source, offsets)
-        const { document, errors } = this.parser.parse(source, uri.toString())
-        if (!document) {
-            if (errors.length > 0) this.logger.trace({ uri: uri.toString(), errors: errors.length }, 'Parse errors')
-            return {
-                uri: uri.toString(),
-                typeDefinitions: [],
-                fieldDefinitions: [],
-                typeReferences: directiveRefs,
-                fieldReferences: [],
-                directiveUsages: [],
-                validationIssues: parseErrorsToValidationIssues(errors, source),
-                typeEdges: []
-            }
-        }
-        const symbols = analyzeDocument(uri.toString(), source, document.definitions)
-        symbols.typeReferences = [...symbols.typeReferences, ...directiveRefs]
-        return symbols
     }
 
     private scheduleReindex(uri: Uri): void {

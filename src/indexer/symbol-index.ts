@@ -168,9 +168,13 @@ export class SymbolIndex {
 
     typeDefinitionsByKind(kind: TypeDefinitionEntry['kind']): TypeDefinitionEntry[] {
         const out: TypeDefinitionEntry[] = []
+        const seen = new Set<string>()
         for (const list of this.typeDefinitions.values()) {
             for (const def of list) {
-                if (def.kind === kind && !out.some(d => d.name === def.name)) out.push(def)
+                if (def.kind !== kind) continue
+                if (seen.has(def.name)) continue
+                seen.add(def.name)
+                out.push(def)
             }
         }
         return out
