@@ -1,6 +1,7 @@
 import type {
     DefinitionNode,
     DirectiveDefinitionNode,
+    DirectiveNode,
     DocumentNode,
     EnumTypeDefinitionNode,
     EnumTypeExtensionNode,
@@ -17,12 +18,14 @@ import type {
     ObjectTypeExtensionNode,
     ScalarTypeDefinitionNode,
     ScalarTypeExtensionNode,
+    StringValueNode,
     TypeNode,
     UnionTypeDefinitionNode,
     UnionTypeExtensionNode,
     ValueNode
 } from 'graphql'
 import { Kind, visit } from 'graphql'
+import { parseFieldSet } from './fieldset-parser'
 import type {
     FieldDefinitionEntry,
     FieldReferenceEntry,
@@ -102,6 +105,12 @@ export function parseDirectiveArgPlaceholder(parent: string): { directiveName: s
     return { directiveName: body.slice(0, slash), argName: body.slice(slash + 1) }
 }
 
+const FIELD_SELECTION_DIRECTIVES = new Map<string, string>([
+    ['key', 'fields'],
+    ['requires', 'fields'],
+    ['provides', 'fields']
+])
+
 function analyzeDefinition(ctx: AnalyzerContext, def: DefinitionNode): void {
     const meta = TYPE_DEF_KINDS.get(def.kind)
     if (meta) {
@@ -159,6 +168,9 @@ function analyzeTypeDef(ctx: AnalyzerContext, node: TypeLikeNode, kind: TypeKind
             }
         }
     }
+    if ('directives' in node && node.directives) {
+        emitFieldSetRefs(ctx, node.directives, { key: entry.name })
+    }
 }
 
 function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDefinitionNode): void {
@@ -175,6 +187,9 @@ function analyzeOutputField(ctx: AnalyzerContext, parent: string, field: FieldDe
     addNestedTypeReferences(ctx, field.type)
     if (field.arguments) {
         for (const arg of field.arguments) analyzeArgument(ctx, arg)
+    }
+    if (field.directives) {
+        emitFieldSetRefs(ctx, field.directives, { requires: parent, provides: typeName })
     }
 }
 
@@ -241,6 +256,35 @@ function analyzeDirectiveDef(ctx: AnalyzerContext, node: DirectiveDefinitionNode
 
 export function directiveArgsParent(directiveName: string): string {
     return `@${directiveName}`
+}
+
+function emitFieldSetRefs(
+    ctx: AnalyzerContext,
+    directives: readonly DirectiveNode[],
+    hostTypeByDirective: Record<string, string>
+): void {
+    for (const dir of directives) {
+        const hostType = hostTypeByDirective[dir.name.value]
+        if (!hostType) continue
+        const argName = FIELD_SELECTION_DIRECTIVES.get(dir.name.value)
+        if (!argName || !dir.arguments) continue
+        for (const arg of dir.arguments) {
+            if (arg.name.value !== argName) continue
+            if (arg.value.kind !== Kind.STRING) continue
+            const str = arg.value as StringValueNode
+            if (!str.loc) continue
+            const contentStart = str.loc.start + (str.block ? 3 : 1)
+            const fields = parseFieldSet(str.value)
+            for (const field of fields) {
+                ctx.fieldReferences.push({
+                    parentTypeName: hostType,
+                    name: field.name,
+                    uri: ctx.uri,
+                    range: ctx.offsets.rangeAt(contentStart + field.nameStart, contentStart + field.nameEnd)
+                })
+            }
+        }
+    }
 }
 
 function collectEnumValueRefs(ctx: AnalyzerContext, expectedTypeName: string, value: ValueNode): void {
