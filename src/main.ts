@@ -2,7 +2,7 @@ import { container, type InjectionToken } from 'tsyringe'
 import { languages, type ExtensionContext } from 'vscode'
 import { ConfigReloader } from './config/config-reloader'
 import { ConfigService } from './config/config.service'
-import { LANGUAGE_ID } from './constants'
+import { EXTENSION_DISPLAY_NAME, LANGUAGE_ID } from './constants'
 import { DeprecatedDecorationProvider } from './decorations/deprecated-decoration-provider'
 import { pickDiagnosticsService } from './diagnostics'
 import { DiagnosticsService } from './diagnostics/base-diagnostics.service'
@@ -43,7 +43,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
 
     const logger = container.resolve(Logger as InjectionToken<Logger>)
     logger.setLevel(config.logLevel)
-    logger.info({ version: '0.1.0' }, "Oleshko's GraphQL Utils activating")
+    logger.info({ version: '0.1.0' }, `${EXTENSION_DISPLAY_NAME} activating`)
 
     registerLanguageProviders(lifecycle)
 
@@ -53,7 +53,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
     container.resolve(DeprecatedDecorationProvider).start()
     container.resolve(ConfigReloader).start()
 
-    logger.info("Oleshko's GraphQL Utils ready")
+    logger.info(`${EXTENSION_DISPLAY_NAME} ready`)
 }
 
 export async function shutdown(): Promise<void> {
