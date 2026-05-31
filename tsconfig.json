@@ -33,5 +33,5 @@
         // Types
         "types": ["node", "vscode"]
     },
-    "include": ["src/**/*", "tsdown.config.ts", "tests/**/*", "vitest.config.ts"]
+    "include": ["src/**/*", "tsdown.config.ts", "test/**/*", "vitest.config.ts"]
 }

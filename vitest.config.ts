@@ -17,14 +17,14 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            vscode: fileURLToPath(new URL('./tests/mocks/vscode.ts', import.meta.url))
+            vscode: fileURLToPath(new URL('./test/mocks/vscode.ts', import.meta.url))
         }
     },
     test: {
         globals: false,
         environment: 'node',
-        include: ['tests/**/*.test.ts'],
-        setupFiles: ['./tests/vitest-setup.ts'],
+        include: ['test/**/*.test.ts'],
+        setupFiles: ['./test/vitest-setup.ts'],
         passWithNoTests: true,
         clearMocks: true,
         restoreMocks: true,

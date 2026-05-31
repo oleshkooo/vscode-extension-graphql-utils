@@ -205,10 +205,10 @@
         "zod": "4.4.1"
     },
     "devDependencies": {
-        "@swc/core": "^1.15.40",
+        "@swc/core": "1.15.40",
         "@types/node": "22.10.7",
         "@types/vscode": "1.96.0",
-        "@vitest/coverage-v8": "^4.1.7",
+        "@vitest/coverage-v8": "4.1.7",
         "@vscode/vsce": "3.2.1",
         "concurrently": "9.2.1",
         "husky": "9.1.7",
@@ -216,7 +216,7 @@
         "prettier": "3.8.3",
         "tsdown": "0.22.1",
         "typescript": "6.0.3",
-        "unplugin-swc": "^1.5.9",
-        "vitest": "^4.1.7"
+        "unplugin-swc": "1.5.9",
+        "vitest": "4.1.7"
     }
 }
