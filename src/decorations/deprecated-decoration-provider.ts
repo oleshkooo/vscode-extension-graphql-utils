@@ -18,7 +18,7 @@ export class DeprecatedDecorationProvider {
 
     start(): void {
         this.decorationType = window.createTextEditorDecorationType({
-            textDecoration: 'line-through'
+            textDecoration: 'line-through var(--vscode-editor-foreground)'
         })
         this.lifecycle.register(this.decorationType)
 
