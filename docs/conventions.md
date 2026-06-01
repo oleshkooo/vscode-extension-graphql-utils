@@ -83,6 +83,39 @@ container.register(Logger as InjectionToken<Logger>, { useToken: pickLogger() })
 const logger = container.resolve(Logger as InjectionToken<Logger>)
 ```
 
+## Value objects
+
+Not every class is a DI seam. Thin value objects — types whose only job is to
+hold data behind a typed constructor, often subclassing a `vscode` primitive —
+are fine and **don't** need `base-`/`noop-`/`pick*` treatment.
+
+Typical shape: a small `MyCodeAction extends vscode.CodeAction` (or
+`extends vscode.Diagnostic`, etc.) that bundles a fixed `title` + `command` +
+`arguments` shape so the call site reads declaratively
+(`new MyCodeAction(range, …)`) instead of repeating
+`new CodeAction(range, { … })` everywhere.
+
+Rules of thumb:
+
+- **Constructor only.** No state, no methods. The moment you reach for
+  `update()`/`refresh()`/private mutable fields, it's no longer a value object —
+  it probably wants a DI seam (or just a function).
+- **No DI.** Constructed at the call site, not resolved. No `@singleton()`,
+  no constructor injection.
+- **One file per class** still applies — same kebab-case naming, no role
+  suffix needed (`my-code-action.ts`, not `dto-my-code-action.ts`).
+- Use `satisfies SomeShape` on the wrapped data (e.g.
+  `arguments: [{ … } satisfies CommandArgs]`) so the shape stays checked at
+  compile time.
+
+What's NOT a value object: anything held by `Lifecycle`, anything pulled out
+of the DI container, anything with behavior beyond construction. Those go
+through the DI patterns above.
+
+The "no manager / service-registry classes" anti-pattern in
+[extending.md](./extending.md) is about classes that hold and orchestrate
+other services — not about value objects. Don't conflate them.
+
 ## Noop discipline
 
 If anything can be turned off via config, it gets a noop variant. Consumers

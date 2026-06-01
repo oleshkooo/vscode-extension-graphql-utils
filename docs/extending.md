@@ -147,7 +147,9 @@ To add a federation scalar treated as built-in:
 ## What you should NOT do
 
 - **Don't add a "manager" or "service-registry" class that holds other
-  services.** That's what tsyringe is for. Inject what you need.
+  services.** That's what tsyringe is for. Inject what you need. (This is
+  _not_ a ban on value-object classes — see
+  [conventions.md § Value objects](./conventions.md#value-objects).)
 - **Don't bypass `Lifecycle.register` to push to `context.subscriptions`
   directly.** Lifecycle is the single point that owns the disposable list.
 - **Don't read `vscode.workspace.getConfiguration` outside `loader.ts`.**

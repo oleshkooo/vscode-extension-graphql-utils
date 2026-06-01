@@ -103,13 +103,51 @@ any folder with `.gql` files and exercise the providers.
 
 ## Publishing
 
+Releases are tag-driven. Push a `v*.*.*` tag to `main` and
+[`.github/workflows/publish.yml`](../.github/workflows/publish.yml) runs
+typecheck + tests + build, calls `vsce publish` with the `VSCE_PAT` secret,
+packages a `.vsix`, and attaches it to a GitHub Release with auto-generated
+notes. The CI workflow ([`ci.yml`](../.github/workflows/ci.yml)) runs the same
+checks on every PR and main push, so a green tag means the marketplace push
+will also be green.
+
+### Release loop
+
+For a normal release I do this from `main`:
+
 ```sh
-npm run package               # vsce package → oleshkos-graphql-X.Y.Z.vsix
-npm run publish               # vsce publish (needs marketplace PAT)
+# 1. bump the patch in package.json (0.1.11 → 0.1.12)
+#    edit by hand or: npm version patch --no-git-tag-version
+
+# 2. two commits — one for the change, one for the bump
+git add <changed files>
+git commit -m "<feature / fix message>"
+git add package.json
+git commit -m "Release vX.Y.Z"
+
+# 3. tag the bump commit and push both
+git tag vX.Y.Z
+git push origin main
+git push origin vX.Y.Z
 ```
 
-`vscode:prepublish` runs the production build automatically. `.vscodeignore`
-strips `src/`, sourcemaps, configs, and node_modules from the published VSIX.
+The two-commit split keeps the version bump as its own atomic commit — easy to
+revert, easy to spot in `git log --oneline`. The tag lives on the `Release …`
+commit, not the feature commit.
+
+### Manual fallback
+
+If the tag-driven flow is unavailable (e.g. CI down, secret rotated), publish
+locally:
+
+```sh
+npm run package               # vsce package → graphql-utils-X.Y.Z.vsix
+npm run publish               # vsce publish — needs VSCE_PAT in the env
+```
+
+`vscode:prepublish` runs the production build automatically.
+[`.vscodeignore`](../.vscodeignore) strips `src/`, sourcemaps, configs, and
+`node_modules` from the published VSIX.
 
 ## TypeScript strictness
 
