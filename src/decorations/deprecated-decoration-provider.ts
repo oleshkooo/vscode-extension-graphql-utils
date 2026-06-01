@@ -18,8 +18,7 @@ export class DeprecatedDecorationProvider {
 
     start(): void {
         this.decorationType = window.createTextEditorDecorationType({
-            textDecoration: 'line-through',
-            opacity: '0.6'
+            textDecoration: 'line-through'
         })
         this.lifecycle.register(this.decorationType)
 
@@ -36,12 +35,8 @@ export class DeprecatedDecorationProvider {
         )
 
         this.lifecycle.register(
-            this.index.onDidUpdate(event => {
-                for (const editor of window.visibleTextEditors) {
-                    if (event.uri === '*' || editor.document.uri.toString() === event.uri) {
-                        this.refresh(editor)
-                    }
-                }
+            this.index.onDidUpdate(() => {
+                for (const editor of window.visibleTextEditors) this.refresh(editor)
             })
         )
 
@@ -52,18 +47,36 @@ export class DeprecatedDecorationProvider {
         if (!this.decorationType) return
         if (editor.document.languageId !== LANGUAGE_ID) return
         const symbols = this.index.fileOf(editor.document.uri.toString())
-        const ranges = symbols ? collectDeprecatedRanges(symbols) : []
-        editor.setDecorations(this.decorationType, ranges)
+        if (!symbols) {
+            editor.setDecorations(this.decorationType, [])
+            return
+        }
+        editor.setDecorations(this.decorationType, collectDeprecatedRanges(symbols, collectDeprecatedTypes(this.index)))
     }
 }
 
-function collectDeprecatedRanges(symbols: FileSymbols): Range[] {
+export function collectDeprecatedTypes(index: SymbolIndex): Set<string> {
+    const types = new Set<string>()
+    for (const file of index.iterateFiles()) {
+        for (const def of file.typeDefinitions) {
+            if (def.kind === 'directive') continue
+            if (hasDeprecated(def.directiveNames)) types.add(def.name)
+        }
+    }
+    return types
+}
+
+export function collectDeprecatedRanges(symbols: FileSymbols, deprecatedTypes: Set<string>): Range[] {
     const ranges: Range[] = []
     for (const def of symbols.typeDefinitions) {
         if (hasDeprecated(def.directiveNames)) ranges.push(def.nameRange)
     }
     for (const field of symbols.fieldDefinitions) {
         if (hasDeprecated(field.directiveNames)) ranges.push(field.nameRange)
+    }
+    for (const ref of symbols.typeReferences) {
+        if (ref.isDirective) continue
+        if (deprecatedTypes.has(ref.name)) ranges.push(ref.range)
     }
     return ranges
 }
