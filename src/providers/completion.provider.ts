@@ -9,6 +9,7 @@ import {
     type ProviderResult,
     type TextDocument
 } from 'vscode'
+import { ConfigService } from '../config/config.service'
 import { DIRECTIVE_LOCATIONS } from '../constants'
 import type { FederationDirectiveSpec } from '../federation/directives'
 import { FederationRegistry } from '../federation/federation-registry'
@@ -28,7 +29,8 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
         private readonly index: SymbolIndex,
         private readonly federation: FederationRegistry,
         private readonly builtins: BuiltinScalarsRegistry,
-        private readonly parentResolver: FieldParentResolver
+        private readonly parentResolver: FieldParentResolver,
+        private readonly cfg: ConfigService
     ) {}
 
     provideCompletionItems(document: TextDocument, position: Position): ProviderResult<CompletionList<CompletionItem>> {
@@ -118,6 +120,15 @@ export class GraphqlCompletionProvider implements CompletionItemProvider {
             const argsMd = args.length > 0 ? userDirectiveArgsMarkdown(args) : ''
             const item = this.makeDirectiveItem(def.name, def.description, argsMd)
             item.sortText = sortText(rank, def.name)
+            items.push(item)
+        }
+
+        for (const raw of this.cfg.diagnostics.knownDirectives) {
+            const name = raw.trim().replace(/^@/, '')
+            if (name.length === 0 || seen.has(name)) continue
+            seen.add(name)
+            const item = this.makeDirectiveItem(name, undefined, '')
+            item.sortText = sortText(rankOf('workspace'), name)
             items.push(item)
         }
 
