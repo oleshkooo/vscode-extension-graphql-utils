@@ -1,5 +1,6 @@
 import { container, type InjectionToken } from 'tsyringe'
 import { languages, type ExtensionContext } from 'vscode'
+import { ShowUnusedTypesCommand } from './commands/show-unused-types.command'
 import { ConfigReloader } from './config/config-reloader'
 import { ConfigService } from './config/config.service'
 import { EXTENSION_DISPLAY_NAME, LANGUAGE_ID } from './constants'
@@ -52,6 +53,7 @@ export async function bootstrap(context: ExtensionContext): Promise<void> {
 
     container.resolve(DeprecatedDecorationProvider).start()
     container.resolve(ConfigReloader).start()
+    container.resolve(ShowUnusedTypesCommand).register()
 
     logger.info(`${EXTENSION_DISPLAY_NAME} ready`)
 }
