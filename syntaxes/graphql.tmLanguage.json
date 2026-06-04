@@ -98,7 +98,7 @@
         "default-value": {
             "begin": "(=)",
             "beginCaptures": { "1": { "name": "keyword.operator.default-value.graphql" } },
-            "end": "(?=,|\\)|\\}|\\n|$)",
+            "end": "(?=,|\\)|\\}|\\n|$|@)",
             "patterns": [
                 { "include": "#comments" },
                 { "include": "#strings" },

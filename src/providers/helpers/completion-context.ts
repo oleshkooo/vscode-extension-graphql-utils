@@ -30,6 +30,8 @@ export function detectCompletionContext(document: TextDocument, position: Positi
         return { kind: 'default-value', typeName: defaultValueTypeName }
     }
 
+    if (/@[_0-9A-Za-z]*$/.test(currentLine)) return { kind: 'directive-name' }
+
     const parenScope = detectParenScope(stripped)
     if (parenScope) {
         if (parenScope.directiveName !== undefined) {
@@ -47,8 +49,6 @@ export function detectCompletionContext(document: TextDocument, position: Positi
             return { kind: 'type-position', enclosingType: detectEnclosingTypeDef(stripped) }
         return { kind: 'none' }
     }
-
-    if (/@[_0-9A-Za-z]*$/.test(currentLine)) return { kind: 'directive-name' }
 
     if (isDirectiveLocationContext(stripped, currentLine)) return { kind: 'directive-location' }
 

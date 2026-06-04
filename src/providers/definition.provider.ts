@@ -5,6 +5,7 @@ import {
     type DefinitionProvider as VscDefinitionProvider,
     type Position,
     type ProviderResult,
+    type Range,
     type TextDocument
 } from 'vscode'
 import { SymbolIndex } from '../indexer/symbol-index'
@@ -44,6 +45,6 @@ export class GraphqlDefinitionProvider implements VscDefinitionProvider {
     }
 }
 
-function toNameLocation(entry: { uri: string; nameRange: import('vscode').Range }): Location {
+function toNameLocation(entry: { uri: string; nameRange: Range }): Location {
     return new Location(Uri.parse(entry.uri), entry.nameRange)
 }

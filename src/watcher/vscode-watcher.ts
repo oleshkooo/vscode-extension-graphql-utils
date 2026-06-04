@@ -1,5 +1,5 @@
 import { singleton } from 'tsyringe'
-import { EventEmitter, RelativePattern, workspace, type WorkspaceFolder } from 'vscode'
+import { EventEmitter, RelativePattern, workspace, type Disposable, type WorkspaceFolder } from 'vscode'
 import { ConfigService } from '../config/config.service'
 import { Lifecycle } from '../lifecycle/lifecycle'
 import { Logger } from '../logger/base-logger'
@@ -37,7 +37,7 @@ export class VsCodeFileWatcher extends FileWatcher {
         this.started = false
     }
 
-    onChange(listener: FileChangeListener): import('vscode').Disposable {
+    onChange(listener: FileChangeListener): Disposable {
         return this.emitter.event(listener)
     }
 

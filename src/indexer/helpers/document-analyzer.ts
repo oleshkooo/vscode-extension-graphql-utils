@@ -25,6 +25,7 @@ import type {
     ValueNode
 } from 'graphql'
 import { Kind, visit } from 'graphql'
+import type { Range } from 'vscode'
 import type {
     DirectiveUsageEntry,
     FieldDefinitionEntry,
@@ -470,7 +471,7 @@ function innerTypeName(type: TypeNode): string {
     return type.name.value
 }
 
-function rangeOf(ctx: AnalyzerContext, loc: Location | undefined): import('vscode').Range {
+function rangeOf(ctx: AnalyzerContext, loc: Location | undefined): Range {
     if (!loc) return ctx.offsets.rangeAt(0, 0)
     return ctx.offsets.rangeAt(loc.start, loc.end)
 }

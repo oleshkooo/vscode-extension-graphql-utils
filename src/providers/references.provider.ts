@@ -4,6 +4,7 @@ import {
     Uri,
     type Position,
     type ProviderResult,
+    type Range,
     type ReferenceContext,
     type ReferenceProvider as VscReferenceProvider,
     type TextDocument
@@ -59,10 +60,7 @@ export class GraphqlReferencesProvider implements VscReferenceProvider {
     private *collectPlaceholderRefsTargeting(
         targetParent: string,
         targetName: string
-    ): Iterable<{
-        uri: string
-        range: import('vscode').Range
-    }> {
+    ): Iterable<{ uri: string; range: Range }> {
         for (const ref of this.index.iterateAllFieldReferences()) {
             if (ref.name !== targetName) continue
             if (!ref.parentTypeName.startsWith('@@')) continue
@@ -72,6 +70,6 @@ export class GraphqlReferencesProvider implements VscReferenceProvider {
     }
 }
 
-function toLocation(entry: { uri: string; range: import('vscode').Range }): Location {
+function toLocation(entry: { uri: string; range: Range }): Location {
     return new Location(Uri.parse(entry.uri), entry.range)
 }

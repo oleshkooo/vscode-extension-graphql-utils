@@ -12,9 +12,7 @@ export function extractDirectiveReferencesViaRegex(
     const cleaned = stripStringsAndComments(source)
     const out: TypeReferenceEntry[] = []
 
-    DIRECTIVE_PATTERN.lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = DIRECTIVE_PATTERN.exec(cleaned)) !== null) {
+    for (const m of cleaned.matchAll(DIRECTIVE_PATTERN)) {
         const name = m[1] as string
         const start = m.index
         const end = start + m[0].length

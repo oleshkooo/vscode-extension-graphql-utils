@@ -1,6 +1,5 @@
 import { singleton } from 'tsyringe'
-import type { Position, TextDocument } from 'vscode'
-import { GraphqlParser } from '../../parser/base-parser'
+import type { Position, Range, TextDocument } from 'vscode'
 import { buildSymbolsFromSource } from '../../indexer/helpers/build-symbols'
 import { SymbolIndex } from '../../indexer/symbol-index'
 import type {
@@ -10,6 +9,7 @@ import type {
     TypeDefinitionEntry,
     TypeReferenceEntry
 } from '../../indexer/types'
+import { GraphqlParser } from '../../parser/base-parser'
 
 export type ResolvedSymbol =
     | { kind: 'type-definition'; entry: TypeDefinitionEntry }
@@ -40,7 +40,7 @@ export class DocumentSymbolResolver {
 }
 
 function findSymbolAt(symbols: FileSymbols, position: Position): ResolvedSymbol | undefined {
-    const candidates: { symbol: ResolvedSymbol; range: import('vscode').Range }[] = []
+    const candidates: { symbol: ResolvedSymbol; range: Range }[] = []
     for (const entry of symbols.typeDefinitions) {
         if (entry.nameRange.contains(position))
             candidates.push({ symbol: { kind: 'type-definition', entry }, range: entry.nameRange })
@@ -62,7 +62,7 @@ function findSymbolAt(symbols: FileSymbols, position: Position): ResolvedSymbol 
     return (candidates[0] as (typeof candidates)[number]).symbol
 }
 
-function rangeSize(range: import('vscode').Range): number {
+function rangeSize(range: Range): number {
     if (range.start.line === range.end.line) return range.end.character - range.start.character
     return (range.end.line - range.start.line) * 10000 + range.end.character
 }
