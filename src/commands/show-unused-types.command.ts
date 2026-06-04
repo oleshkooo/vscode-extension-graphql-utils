@@ -18,7 +18,7 @@ export class ShowUnusedTypesCommand extends Command {
     }
 
     protected async run(): Promise<void> {
-        const unused = findUnusedTypeDefinitions(this.index)
+        const unused = findUnusedTypeDefinitions(this.index).filter(def => !isInNodeModules(def.uri))
         if (unused.length === 0) {
             window.showInformationMessage('No unused types in workspace.')
             return
@@ -30,4 +30,8 @@ export class ShowUnusedTypesCommand extends Command {
         if (!picked) return
         await openAtTypeDef(picked.def)
     }
+}
+
+function isInNodeModules(uri: string): boolean {
+    return uri.includes('/node_modules/')
 }
