@@ -2,7 +2,7 @@
     "name": "graphql-utils",
     "displayName": "Oleshko's GraphQL Utils",
     "description": "Zero-config GraphQL & Apollo Federation language support: definitions, references, hover, autocomplete, syntax highlighting",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "publisher": "oleshko",
     "license": "MIT",
     "private": false,
@@ -178,7 +178,14 @@
             "[graphql]": {
                 "editor.wordBasedSuggestions": "off"
             }
-        }
+        },
+        "commands": [
+            {
+                "command": "oleshkoGraphqlUtils.showUnusedTypes",
+                "title": "Show Unused Types",
+                "category": "GraphQL"
+            }
+        ]
     },
     "scripts": {
         "prepare": "husky || true",
