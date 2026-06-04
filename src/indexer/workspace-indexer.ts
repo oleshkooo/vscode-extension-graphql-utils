@@ -58,6 +58,7 @@ export class WorkspaceIndexer extends Indexer {
         this.lifecycle.register(
             workspace.onDidChangeTextDocument(event => {
                 if (event.document.languageId !== LANGUAGE_ID) return
+                if (event.document.uri.scheme !== 'file') return
                 this.scheduleLiveReindex(event.document)
             })
         )
@@ -65,6 +66,7 @@ export class WorkspaceIndexer extends Indexer {
         this.lifecycle.register(
             workspace.onDidCloseTextDocument(doc => {
                 if (doc.languageId !== LANGUAGE_ID) return
+                if (doc.uri.scheme !== 'file') return
                 const key = doc.uri.toString()
                 const existing = this.liveTimers.get(key)
                 if (existing) {
