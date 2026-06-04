@@ -31,9 +31,11 @@ export class GraphqlReferencesProvider implements VscReferenceProvider {
         switch (symbol.kind) {
             case 'type-definition':
             case 'type-reference': {
+                const defs = this.index.findTypeDefinitions(symbol.entry.name)
                 const refs = this.index.findTypeReferences(symbol.entry.name).map(toLocation)
+                refs.push(...defs.filter(d => d.isExtension).map(toLocation))
                 if (context.includeDeclaration) {
-                    refs.push(...this.index.findTypeDefinitions(symbol.entry.name).map(toLocation))
+                    refs.push(...defs.filter(d => !d.isExtension).map(toLocation))
                 }
                 return refs
             }
