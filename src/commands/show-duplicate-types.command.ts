@@ -20,7 +20,7 @@ export class ShowDuplicateTypesCommand extends Command {
     protected async run(): Promise<void> {
         const groups = findDuplicateTypeGroups(this.index)
         if (groups.length === 0) {
-            window.showInformationMessage('No duplicate types in workspace.')
+            window.showInformationMessage('No duplicate types in the workspace.')
             return
         }
         const items = groups.flatMap(g => g.definitions.map(typeDefToQuickPickItem))

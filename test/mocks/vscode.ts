@@ -230,6 +230,9 @@ export class WorkspaceEdit {
     replace(uri: Uri, range: Range, newText: string): void {
         this.ops.push({ uri, range, newText })
     }
+    delete(uri: Uri, range: Range): void {
+        this.ops.push({ uri, range, newText: '' })
+    }
     entries(): [Uri, WorkspaceEditOp[]][] {
         return [[this.ops[0]?.uri as Uri, [...this.ops]]]
     }

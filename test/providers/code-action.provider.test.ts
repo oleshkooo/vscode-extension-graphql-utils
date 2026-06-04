@@ -3,6 +3,7 @@ import { CodeActionKind, Position, type CodeActionContext, type Diagnostic, type
 import type { ConfigService } from '../../src/config/config.service'
 import { UnknownEnumValueRule } from '../../src/diagnostics/rules/unknown-enum-value.rule'
 import { UnknownReferencesRule } from '../../src/diagnostics/rules/unknown-references.rule'
+import { UnusedTypesRule } from '../../src/diagnostics/rules/unused-types.rule'
 import { FederationRegistry } from '../../src/federation/federation-registry'
 import { GraphqlCodeActionProvider } from '../../src/providers/code-action.provider'
 import { BuiltinScalarsRegistry } from '../../src/scalars/builtin-scalars.registry'
@@ -175,5 +176,82 @@ describe('GraphqlCodeActionProvider', () => {
         const provider = new GraphqlCodeActionProvider(ws.index, federation, builtins)
         const actions = provider.provideCodeActions(fakeDocument('a.graphql', source), diag.range, fakeContext([diag]))
         expect(actions).toEqual([])
+    })
+
+    it("offers 'Delete unused type' for unused diagnostics", () => {
+        const source = `type Query { me: String }
+type Orphan { id: ID }
+`
+        const ws = makeWorkspace({ 'a.graphql': source })
+        const symbols = ws.files.get('a.graphql')!
+        const rule = new UnusedTypesRule()
+        const diag = rule.evaluate(symbols, { index: ws.index, federation }).find(d => d.code === 'unused')!
+        expect(diag).toBeDefined()
+
+        const provider = new GraphqlCodeActionProvider(ws.index, federation, builtins)
+        const actions = provider.provideCodeActions(fakeDocument('a.graphql', source), diag.range, fakeContext([diag]))
+        expect(actions.map(a => a.title)).toContain("Delete unused type 'Orphan'")
+        const action = actions[0]!
+        expect(action.kind).toBe(CodeActionKind.QuickFix)
+        expect(action.isPreferred).toBe(true)
+        expect(action.diagnostics).toEqual([diag])
+    })
+
+    it('deletes the entire type block plus its trailing newline', () => {
+        const source = `type Query { me: String }
+type Orphan { id: ID }
+type Other { ok: String }
+`
+        const ws = makeWorkspace({ 'a.graphql': source })
+        const symbols = ws.files.get('a.graphql')!
+        const rule = new UnusedTypesRule()
+        const diag = rule.evaluate(symbols, { index: ws.index, federation }).find(d => d.code === 'unused')!
+
+        const provider = new GraphqlCodeActionProvider(ws.index, federation, builtins)
+        const actions = provider.provideCodeActions(fakeDocument('a.graphql', source), diag.range, fakeContext([diag]))
+        const ops = (
+            actions[0]!.edit as unknown as { operations(): readonly { newText: string; range: Range }[] }
+        ).operations()
+        expect(ops).toHaveLength(1)
+        expect(ops[0]?.newText).toBe('')
+        expect(ops[0]?.range.start.line).toBe(1)
+        expect(ops[0]?.range.start.character).toBe(0)
+        expect(ops[0]?.range.end.line).toBe(2)
+        expect(ops[0]?.range.end.character).toBe(0)
+    })
+
+    it('also deletes a preceding """docstring""" attached to the unused type', () => {
+        const source = `type Query { me: String }
+"""doc lines
+across multiple lines"""
+type Orphan { id: ID }
+`
+        const ws = makeWorkspace({ 'a.graphql': source })
+        const symbols = ws.files.get('a.graphql')!
+        const rule = new UnusedTypesRule()
+        const diag = rule.evaluate(symbols, { index: ws.index, federation }).find(d => d.code === 'unused')!
+
+        const provider = new GraphqlCodeActionProvider(ws.index, federation, builtins)
+        const actions = provider.provideCodeActions(fakeDocument('a.graphql', source), diag.range, fakeContext([diag]))
+        const ops = (
+            actions[0]!.edit as unknown as { operations(): readonly { newText: string; range: Range }[] }
+        ).operations()
+        expect(ops[0]?.range.start.line).toBe(1)
+        expect(ops[0]?.range.end.line).toBe(4)
+    })
+
+    it("offers 'Delete unused directive' for an unused directive definition", () => {
+        const source = `directive @auth on FIELD_DEFINITION
+type Query { me: String }
+`
+        const ws = makeWorkspace({ 'a.graphql': source })
+        const symbols = ws.files.get('a.graphql')!
+        const rule = new UnusedTypesRule()
+        const diag = rule.evaluate(symbols, { index: ws.index, federation }).find(d => d.code === 'unused')!
+        expect(diag).toBeDefined()
+
+        const provider = new GraphqlCodeActionProvider(ws.index, federation, builtins)
+        const actions = provider.provideCodeActions(fakeDocument('a.graphql', source), diag.range, fakeContext([diag]))
+        expect(actions.map(a => a.title)).toContain("Delete unused directive '@auth'")
     })
 })
